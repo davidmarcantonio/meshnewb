@@ -1,6 +1,6 @@
 # MeshNewb
 
-Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Pick your state and community to get that mesh's published settings, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
+Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Start with the standard settings the firmware ships with, pick your state and community to get your local mesh's published settings, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
 
 Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
 

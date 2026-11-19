@@ -15,7 +15,7 @@
 <header class="site">
   <div class="eyebrow">Meshtastic · Web Serial</div>
   <h1>MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
-  <p>Pick your state and community, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+  <p>Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
   <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
 </header>
 
@@ -70,9 +70,20 @@
     <!-- ===== Radio: community preset or manual ===== -->
     <section class="panel">
       <h2><span><span class="n">02</span>Radio settings</span></h2>
-      <div class="tabs"><button type="button" data-mode="community" class="on">Community preset</button><button type="button" data-mode="manual">Set everything manually</button></div>
+      <div class="tabs"><button type="button" data-mode="standard" class="on">Standard settings</button><button type="button" data-mode="community">My local mesh</button><button type="button" data-mode="manual">Set everything manually</button></div>
 
-      <div id="panel-community">
+      <div id="panel-standard">
+        <div class="card">
+          <p><b>Start here if you're not sure.</b> Your radio keeps the settings Meshtastic ships with; this page only sets the region to United States, plus your name and connection above. That is enough to get on the air and hear anyone nearby who is also on the defaults.</p>
+          <p class="hint">Standard settings come from the firmware itself, so they are right for whichever version gets flashed. For a clean start, use "Erase, flash &amp; configure". "Configure only" leaves a used radio's old preset in place.</p>
+          <p>Many areas have a local mesh that runs different settings. If you hear nobody, or want better range and fewer lost messages, check whether your area has one.</p>
+        </div>
+        <div class="buttons"><button type="button" class="small quiet" id="btn-find-mesh">Find my local mesh →</button></div>
+        <div class="meta">Outside the United States? Use "Set everything manually" and pick your region.</div>
+      </div>
+
+
+      <div id="panel-community" hidden>
         <label for="state">State</label>
         <select id="state" disabled><option value="" selected disabled>Choose your state…</option></select>
         <div id="community-row" hidden>
@@ -87,7 +98,7 @@
         <div class="card" id="c-listed" hidden>
           <p>There is no preset for <b id="c-listed-name"></b> yet: its radio settings aren't on a public page we could verify.</p>
           <div class="hint" id="c-listed-area"></div>
-          <p>Get them from <span id="c-listed-kind"></span>: <a id="c-listed-link" target="_blank" rel="noopener noreferrer"></a>. Most groups pin or post their settings for newcomers. Then come back and use "Set everything manually".</p>
+          <p>Get them from <span id="c-listed-kind"></span>: <a id="c-listed-link" target="_blank" rel="noopener noreferrer"></a>. Most groups pin or post their settings for newcomers. Then come back and use "Set everything manually". Until then, "Standard settings" will get you on the air.</p>
           <ul id="c-listed-notes"></ul>
           <div class="meta">Listed, checked <span id="c-listed-checked"></span></div>
         </div>

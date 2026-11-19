@@ -90,6 +90,7 @@ function setConn(c) {
 function setMode(m) {
   mode = m;
   document.querySelectorAll("[data-mode]").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+  $("panel-standard").hidden = m !== "standard";
   $("panel-community").hidden = m !== "community";
   $("panel-manual").hidden = m !== "manual";
 }
@@ -293,7 +294,11 @@ function readSettings() {
   }
 
   let r;
-  if (mode === "community") {
+  if (mode === "standard") {
+    // Region only. Preset, slot, hops and role stay whatever the firmware ships with, so this follows the
+    // firmware's own defaults across versions instead of hard-coding them here.
+    r = { source: "Standard settings", stock: true, region: 1, usePreset: true, channel: { kind: "public" } };
+  } else if (mode === "community") {
     if (community?.status === "published") r = communitySettings();
     else {
       problems.push(community
@@ -448,7 +453,7 @@ async function pushConfig(s) {
     if (urlLora.channelNum) s.slot = urlLora.channelNum;
   }
   // LoRa: read-modify-write. setConfig replaces the whole section.
-  const lora = {
+  const lora = s.stock ? { ...have("lora"), region: s.region, txEnabled: true } : {
     ...have("lora"), ...urlLora,
     region: s.region, txEnabled: true, usePreset: s.usePreset,
     modemPreset: s.channel.kind === "url" && s.channel.set.loraConfig ? urlLora.modemPreset : s.preset,
@@ -460,10 +465,14 @@ async function pushConfig(s) {
   };
   const presetName = s.usePreset ? PRESET_LABEL[lora.modemPreset] ?? lora.modemPreset : `custom BW${lora.bandwidth}/SF${lora.spreadFactor}/CR${lora.codingRate}`;
 
-  await send(`device: role ${ROLE_LABEL[s.role]}${s.nodeInfoSecs ? `, nodeinfo ${fmtSecs(s.nodeInfoSecs)}` : ""}`, () =>
-    setCfg("device", { ...have("device"), role: s.role, ...defined({ nodeInfoBroadcastSecs: s.nodeInfoSecs }) }));
-  await send(`LoRa: ${REGION_LABEL[s.region]} · ${presetName} · slot ${lora.channelNum || "auto"} · ${lora.hopLimit} hops · OK-to-MQTT ${lora.configOkToMqtt ? "on" : "off"}`, () =>
-    setCfg("lora", lora));
+  if (s.stock) {
+    await send(`LoRa: ${REGION_LABEL[s.region]} · firmware defaults kept (${presetName}, slot ${lora.channelNum || "auto"}, ${lora.hopLimit} hops)`, () => setCfg("lora", lora));
+  } else {
+    await send(`device: role ${ROLE_LABEL[s.role]}${s.nodeInfoSecs ? `, nodeinfo ${fmtSecs(s.nodeInfoSecs)}` : ""}`, () =>
+      setCfg("device", { ...have("device"), role: s.role, ...defined({ nodeInfoBroadcastSecs: s.nodeInfoSecs }) }));
+    await send(`LoRa: ${REGION_LABEL[s.region]} · ${presetName} · slot ${lora.channelNum || "auto"} · ${lora.hopLimit} hops · OK-to-MQTT ${lora.configOkToMqtt ? "on" : "off"}`, () =>
+      setCfg("lora", lora));
+  }
   if (s.positionSecs !== undefined || s.smart !== undefined) {
     await send(`position: ${s.positionSecs ? "every " + fmtSecs(s.positionSecs) : "default interval"}, smart ${s.smart === undefined ? "default" : s.smart ? "on" : "off"}`, () =>
       setCfg("position", { ...have("position"), ...defined({ positionBroadcastSecs: s.positionSecs, positionBroadcastSmartEnabled: s.smart }) }));
@@ -524,13 +533,13 @@ async function verify(s) {
   const expPreset = s.channel.kind === "url" && s.channel.set.loraConfig ? s.channel.set.loraConfig.modemPreset : s.preset;
   const rows = [
     ["Region", REGION_LABEL[L.region], L.region === s.region],
-    ["Modem", L.usePreset ? PRESET_LABEL[L.modemPreset] ?? L.modemPreset : `custom BW${L.bandwidth}/SF${L.spreadFactor}/CR${L.codingRate}`, s.usePreset ? L.modemPreset === expPreset : !L.usePreset],
-    ["Frequency slot", L.channelNum ? String(L.channelNum) : "auto", (L.channelNum ?? 0) === (s.slot ?? 0)],
+    ["Modem", L.usePreset ? PRESET_LABEL[L.modemPreset] ?? L.modemPreset : `custom BW${L.bandwidth}/SF${L.spreadFactor}/CR${L.codingRate}`, s.stock || (s.usePreset ? L.modemPreset === expPreset : !L.usePreset)],
+    ["Frequency slot", L.channelNum ? String(L.channelNum) : "auto", s.stock || (L.channelNum ?? 0) === (s.slot ?? 0)],
     ["TX enabled", String(L.txEnabled), L.txEnabled === true],
-    ["TX power", `${L.txPower} dBm${L.txPower === 0 ? " (region max)" : ""}`, L.txPower === s.txPower],
-    ["Hop limit", String(L.hopLimit), L.hopLimit === s.hopLimit],
-    ["On community maps (OK to MQTT)", L.configOkToMqtt ? "yes" : "no", !!L.configOkToMqtt === !!s.okToMqtt],
-    ["Role", ROLE_LABEL[D.role ?? 0] ?? D.role, (D.role ?? 0) === s.role],
+    ["TX power", `${L.txPower} dBm${L.txPower === 0 ? " (region max)" : ""}`, s.stock || L.txPower === s.txPower],
+    ["Hop limit", String(L.hopLimit), s.stock || L.hopLimit === s.hopLimit],
+    ["On community maps (OK to MQTT)", L.configOkToMqtt ? "yes" : "no", s.stock || !!L.configOkToMqtt === !!s.okToMqtt],
+    ["Role", ROLE_LABEL[D.role ?? 0] ?? D.role, s.stock || (D.role ?? 0) === s.role],
     ["Names", `${me.longName} / ${me.shortName}`, me.longName === s.longName && me.shortName === s.shortName],
     ["Primary channel", st.channels[0]?.settings?.name || "public default", true],
   ];
@@ -626,7 +635,8 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-full").onclick = () => run("full");
   $("btn-config").onclick = () => run("config");
 
-  renderCommunity(); syncPresetFields(); setMode("community");
+  renderCommunity(); syncPresetFields(); setMode("standard");
+  $("btn-find-mesh").onclick = () => setMode("community");
   loadPresetIndex();
   browserCheck();
 });
