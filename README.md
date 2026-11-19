@@ -4,6 +4,14 @@ Flash and configure a [Meshtastic](https://meshtastic.org) node from your browse
 
 Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
 
+## Firmware: "Beta" is the one you want
+
+Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone. "Alpha" is the test build. MeshNewb only installs Beta.
+
+- **Detect my board** asks the plugged-in radio what it is and which firmware it runs. It works on any board that already has Meshtastic; a blank ESP32 can only be narrowed to "ESP32".
+- **Out-of-date firmware stops "Configure only" before anything is changed.** You can update first or configure anyway. If a community preset needs a newer firmware than the radio has, updating is the only option.
+- **nRF52 boards** (T-Echo, RAK4631 and others) update by drag-and-drop; the page shows the steps and then configures them.
+
 ## Before you start
 
 - **Browser:** desktop Chrome, Edge or Opera (Firefox 151+ should work). Not Safari, not iPhone/iPad.

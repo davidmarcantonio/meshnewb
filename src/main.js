@@ -46,12 +46,14 @@ function fillBoards() {
   for (const [target, name] of list) opt("board", target, `${name}  (${target})`, target === "heltec-v3");
 }
 
+let currentFw = null; // current beta, once asked
 async function resolveFirmware() {
+  if (currentFw) return currentFw;
   try {
     const fw = await (await get(`${API}/github/firmware/list`)).json();
     const v = fw.releases.stable[0].id.replace(/^v/, "");
     $("fwver").textContent = `${v} (current beta)`;
-    return v;
+    return (currentFw = v);
   } catch (e) {
     warn(`Couldn't ask api.meshtastic.org for the current beta (${e.message}); using tested ${FIRMWARE.tested}.`);
     return FIRMWARE.tested;
@@ -173,6 +175,7 @@ function communitySettings() {
   const c = community, u = currentUse();
   return {
     source: c.name,
+    minFirmware: c.minFirmware,
     region: c.lora.regionNum, usePreset: true, preset: c.lora.modemPresetNum, slot: c.lora.frequencySlot ?? 0,
     hopLimit: u.hops, role: u.role, txPower: 0,
     okToMqtt: $("c-okmqtt").checked, ignoreMqtt: undefined,
@@ -378,6 +381,85 @@ async function buildFileArray() {
 }
 
 let port = null;
+// ---------- what is plugged in ----------
+// A page only sees a USB device after the user picks it. Then: (1) the USB id says which chip family,
+// (2) running Meshtastic firmware reports the exact board and its version. Nothing here leaves the browser.
+const USB_FAMILY = { 0x239a: "nrf52", 0x2886: "nrf52", 0x303a: "esp32", 0x10c4: "esp32", 0x1a86: "esp32", 0x0403: "esp32" };
+const NRF_UPDATE_MODE = new Set(["239a:0029", "2886:0044", "2886:0045", "2886:0057"]); // UF2 bootloader ids
+const NRF_KNOWN = { "239a:4405": ["t-echo", "LilyGo T-Echo"] };
+let detected = null;   // { family, pioEnv, name, fw } from the last detection or connection
+let fwOverride = false; // user chose "Configure anyway" on out-of-date firmware
+
+const usbKey = (p) => { const i = p?.getInfo?.() ?? {}; const h = (n) => (n ?? 0).toString(16).padStart(4, "0"); return { vid: i.usbVendorId, key: `${h(i.usbVendorId)}:${h(i.usbProductId)}` }; };
+const verNums = (v) => (String(v ?? "").match(/\d+/g) ?? []).slice(0, 3).map(Number);
+const olderThan = (a, b) => { const x = verNums(a), y = verNums(b); for (let i = 0; i < 3; i++) { if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); } return false; };
+const shortVer = (v) => verNums(v).join(".");
+
+function identify(st) {
+  const { vid, key } = usbKey(port);
+  const pioEnv = st?.pioEnv ?? NRF_KNOWN[key]?.[0] ?? null;
+  const board = BOARDS.boards.find(([t]) => t === pioEnv);
+  const hw = st?.metadata?.hwModel;
+  const family = USB_FAMILY[vid] ?? (board ? "esp32" : "unknown");
+  const name = board?.[1] ?? NRF_KNOWN[key]?.[1] ?? (pioEnv || (hw ? Protobuf.Mesh.HardwareModel[hw] : null));
+  detected = { family, pioEnv, name, fw: st?.metadata?.firmwareVersion ?? null, updateMode: NRF_UPDATE_MODE.has(key) };
+  if (board) $("board").value = board[0];
+  showNrfSteps(family === "nrf52");
+  return detected;
+}
+
+function showNrfSteps(on) {
+  $("nrf-steps").hidden = !on;
+  if (!on) return;
+  const env = detected?.pioEnv || "<your board>";
+  $("nrf-file").textContent = `firmware-${env}-<version>.uf2`;
+  $("nrf-cp").textContent = `cp -X ~/Downloads/firmware-${env}-*.uf2 /Volumes/<drive name>/`;
+}
+
+async function detect() {
+  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
+  const out = $("detect-result");
+  busy(true);
+  try {
+    await pickPort();
+    let st = null;
+    if (!NRF_UPDATE_MODE.has(usbKey(port).key)) {
+      out.textContent = "Asking the board what it is…";
+      try { const c = await connectMesh(8000); st = c.st; try { await c.dev.disconnect(); } catch {} } catch { /* no Meshtastic answering */ }
+      try { await port.close(); } catch {}
+    }
+    const d = identify(st);
+    if (d.updateMode) out.textContent = "An nRF52 board in update mode (its USB drive should be showing). Copy the firmware file onto the drive; steps below.";
+    else if (d.fw) out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}.` + (d.family === "nrf52" ? " This is an nRF52 board: the page can configure it, but updating is drag-and-drop (steps below)." : "");
+    else if (d.family === "nrf52") out.textContent = `${d.name ?? "An nRF52 board"}, but Meshtastic didn't answer. Install the firmware with the steps below, then use "Configure only".`;
+    else if (d.family === "esp32") out.textContent = "An ESP32 board with no Meshtastic answering (blank, or busy). Pick your exact board from the list; the USB id alone can't tell ESP32 boards apart.";
+    else out.textContent = "Couldn't tell what this is. Pick your board from the list.";
+  } catch (e) {
+    out.textContent = e.name === "NotFoundError" ? "No device picked. If yours wasn't listed, try another USB cable: charge-only cables are the usual cause." : `Detection failed: ${e.message}`;
+  } finally { busy(false); }
+}
+
+// Before any setting is sent: is the firmware current enough?
+async function firmwareGate(s, st, dev) {
+  const d = identify(st);
+  if (!d.fw) return;
+  const current = await resolveFirmware();
+  const need = s.minFirmware;
+  const tooOld = need && olderThan(d.fw, need);
+  if (!tooOld && (!olderThan(d.fw, current) || fwOverride)) return;
+  try { await dev.disconnect(); } catch {}
+  try { await port.close(); } catch {}
+  $("fw-gate-text").textContent = tooOld
+    ? `This radio is on firmware ${shortVer(d.fw)}. ${s.source} needs ${need} or newer, so these settings can't be applied until it is updated. Current is ${shortVer(current)}.`
+    : `This radio is on firmware ${shortVer(d.fw)}. Current is ${shortVer(current)}. Update first: older firmware can lack presets and fixes that these settings assume.`;
+  $("btn-fw-anyway").hidden = !!tooOld;
+  $("btn-fw-update").textContent = d.family === "nrf52" ? "Show me how to update" : "Erase, update & configure";
+  $("fw-gate").hidden = false;
+  const e = new Error(`Stopped before changing anything: firmware ${shortVer(d.fw)} is older than ${shortVer(tooOld ? need : current)}.`);
+  e.name = "FirmwareGate";
+  throw e;
+}
+
 async function pickPort() {
   port = await navigator.serial.requestPort({});
   port.ondisconnect = () => warn("Serial port disconnected (normal during reboots on native-USB boards).");
@@ -419,7 +501,7 @@ async function connectMesh(timeoutMs = 30000) {
   dev.events.onConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.config[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onModuleConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.module[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onChannelPacket.subscribe((ch) => (st.channels[ch.index] = ch));
-  dev.events.onMyNodeInfo.subscribe((m) => (st.myNodeNum = m.myNodeNum));
+  dev.events.onMyNodeInfo.subscribe((m) => { st.myNodeNum = m.myNodeNum; st.pioEnv = m.pioEnv || null; });
   dev.events.onNodeInfoPacket.subscribe((n) => n.user && (st.users[n.num] = n.user));
   dev.events.onDeviceMetadataPacket.subscribe((p) => (st.metadata = p.data));
   const configured = new Promise((res) => dev.events.onDeviceStatus.subscribe((x) => x === 7 && res()));
@@ -441,6 +523,7 @@ const defined = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v 
 async function pushConfig(s) {
   const { dev, st } = await connectWithRetry();
   ok(`Connected. Node !${(st.myNodeNum >>> 0).toString(16)}, firmware ${st.metadata?.firmwareVersion ?? "?"}`);
+  await firmwareGate(s, st, dev);
   const have = (k) => strip(st.config[k] ?? {});
   const hasWifi = st.metadata?.hasWifi ?? true;
   const send = async (what, fn) => { log(`→ ${what}`); await withTimeout(fn(), 15000, what); };
@@ -532,6 +615,7 @@ async function verify(s) {
   const me = st.users[st.myNodeNum] ?? {};
   const expPreset = s.channel.kind === "url" && s.channel.set.loraConfig ? s.channel.set.loraConfig.modemPreset : s.preset;
   const rows = [
+    ["Firmware", st.metadata?.firmwareVersion ? shortVer(st.metadata.firmwareVersion) + (currentFw && olderThan(st.metadata.firmwareVersion, currentFw) ? ` (out of date; current is ${shortVer(currentFw)})` : "") : "?", true],
     ["Region", REGION_LABEL[L.region], L.region === s.region],
     ["Modem", L.usePreset ? PRESET_LABEL[L.modemPreset] ?? L.modemPreset : `custom BW${L.bandwidth}/SF${L.spreadFactor}/CR${L.codingRate}`, s.stock || (s.usePreset ? L.modemPreset === expPreset : !L.usePreset)],
     ["Frequency slot", L.channelNum ? String(L.channelNum) : "auto", s.stock || (L.channelNum ?? 0) === (s.slot ?? 0)],
@@ -572,6 +656,11 @@ async function verify(s) {
 async function run(kind) {
   const { s, problems } = readSettings();
   if (problems.length) { problems.forEach(err); return; }
+  if (kind === "full" && detected?.family === "nrf52") {
+    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under Hardware), then press \"Configure only\".");
+    return;
+  }
+  $("fw-gate").hidden = true;
   if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
   busy(true);
   $("verify").hidden = true;
@@ -586,6 +675,7 @@ async function run(kind) {
     setStep(3, "active"); await pushConfig(s); setStep(3, "done");
     setStep(4, "active"); setStep(4, (await verify(s)) ? "done" : "fail");
   } catch (e) {
+    if (e.name === "FirmwareGate") { warn(e.message); ["2", "3", "4"].forEach((n) => setStep(n, "")); return; }
     err(e.message || String(e)); console.error(e);
     document.querySelectorAll('[data-state="active"]').forEach((el) => (el.dataset.state = "fail"));
     if (e.name === "NotFoundError" || /No port selected/i.test(e.message)) {
@@ -637,6 +727,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
   renderCommunity(); syncPresetFields(); setMode("standard");
   $("btn-find-mesh").onclick = () => setMode("community");
+  $("btn-detect").onclick = detect;
+  $("btn-fw-anyway").onclick = async () => { fwOverride = true; try { await run("config"); } finally { fwOverride = false; } };
+  $("btn-fw-update").onclick = () => {
+    $("fw-gate").hidden = true;
+    if (detected?.family === "nrf52") { showNrfSteps(true); $("nrf-steps").scrollIntoView({ behavior: "smooth", block: "center" }); }
+    else run("full");
+  };
   loadPresetIndex();
   browserCheck();
 });
