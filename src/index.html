@@ -19,11 +19,21 @@
   <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
 </header>
 
+<section class="panel prereq privacy-teaser">
+  <h2><span><span class="n">&#9679;</span>Private by design</span><a href="#privacy" class="small-link">full details &darr;</a></h2>
+  <ul class="plain">
+    <li>No accounts, cookies, analytics or trackers.</li>
+    <li>Your name, PIN, WiFi password and keys go from this tab to your radio over USB. Nothing is sent to us or stored.</li>
+    <li>The only outside requests are to Meshtastic's own servers, and only when you press Flash.</li>
+  </ul>
+</section>
+
 <section class="panel prereq" id="prereq">
   <h2><span><span class="n">00</span>Before you start</span><small>most failed flashes are one of these</small></h2>
   <div id="browser-check" class="check"></div>
   <ol class="checklist">
     <li><b>Browser.</b> Desktop Chrome, Edge or Opera. Firefox 151+ should also work. Safari and iPhone/iPad can't talk to USB devices from a web page. Android Chrome has only just added support and isn't tested here.</li>
+    <li><b>Know how your phone will connect.</b> Almost every Meshtastic board has Bluetooth, which is how the phone app talks to it. ESP32 boards (Heltec, LilyGo T-Beam/T-Deck, Station G2 and most others listed in step 03) also have WiFi. nRF52 boards (RAK4631, LilyGo T-Echo, Seeed T1000-E) are Bluetooth only. On ESP32 you pick one: turning WiFi on turns Bluetooth off. If you're not sure, choose Bluetooth in step 01.</li>
     <li><b>A USB data cable, not a charge-only one.</b> Voltage isn't the issue (USB is always 5&nbsp;V). Cheap charge-only cables simply leave out the data wires, and they look identical. If your computer doesn't see the board, swap cables first. Quick test: a cable that lets your phone show up as a drive on your computer carries data. Most current boards are USB-C; plug straight into the computer, not through a hub or monitor.</li>
     <li><b>USB driver, sometimes.</b> Many ESP32 boards use a CP210x or CH9102 USB chip. Recent macOS and Windows 11 usually handle it on their own; if no port shows up, install the driver from <a href="https://meshtastic.org/docs/getting-started/serial-drivers/esp32/" target="_blank" rel="noopener noreferrer">Meshtastic's driver page</a>, then restart the browser.</li>
     <li><b>Antenna on first.</b> Screw the antenna on before plugging the board in. Transmitting without one can damage the radio.</li>
@@ -41,20 +51,19 @@
         <div><label for="shortname">Short name <span class="req">*</span></label><input id="shortname" maxlength="4" placeholder="DMA1">
           <div class="hint">1–4 characters, unique per radio.</div></div>
       </div>
-      <label>How will your phone talk to it? <span class="req">*</span></label>
-      <label class="inline"><input type="radio" name="conn" value="ble" id="conn-ble" checked> Bluetooth (phone app)</label>
-      <label class="inline"><input type="radio" name="conn" value="wifi" id="conn-wifi"> WiFi (ESP32 only)</label>
+      <label>How will you connect to it? <span class="req">*</span></label>
+      <div class="tabs"><button type="button" data-conn="ble" class="on">Bluetooth (phone app)</button><button type="button" data-conn="wifi">WiFi (ESP32 boards only)</button></div>
       <div id="ble-fields">
         <label for="pin">Bluetooth PIN <span class="req">*</span></label>
         <div class="pinrow"><input id="pin" inputmode="numeric" maxlength="6" placeholder="6 digits"><button type="button" class="small quiet" id="btn-genpin">Generate</button></div>
-        <div class="hint">Write it down. You'll type it when pairing the phone app.</div>
+        <div class="hint">Write it down. You'll type it when pairing the Meshtastic phone app. Works on every board.</div>
       </div>
       <div id="wifi-fields" hidden>
         <div class="row">
           <div><label for="ssid">WiFi SSID <span class="req">*</span></label><input id="ssid" autocomplete="off"></div>
           <div><label for="wifipsk">WiFi password <span class="req">*</span></label><input id="wifipsk" type="password" autocomplete="new-password"></div>
         </div>
-        <div class="callout">On ESP32 Meshtastic, WiFi on means Bluetooth off. You'll manage the node from its web page on your network instead of the phone app.</div>
+        <div class="callout">WiFi on means Bluetooth off. The phone app's Bluetooth pairing won't work; you'll manage the node from its web page on your home network (or the app over your network). Not available on nRF52 boards like the RAK4631 or T-Echo.</div>
       </div>
     </section>
 
@@ -71,7 +80,14 @@
         <div class="card">
           <div class="hint" id="c-area"></div>
           <table><tbody id="c-summary"></tbody></table>
-          <label class="inline"><input type="checkbox" id="c-okmqtt"> OK to MQTT (lets gateways put your public traffic on maps)</label>
+          <div class="mqtt">
+            <label class="inline"><input type="checkbox" id="c-okmqtt"> Show me on community maps <span class="tag">"OK to MQTT"</span></label>
+            <div class="hint" id="c-mqtt-advice"></div>
+            <details class="mini"><summary>What does this mean?</summary>
+              <p>Some people run "gateway" radios that copy mesh traffic to the internet (that link is called MQTT) so it can appear on maps, Discord bridges and stats pages. This box tells those gateways they have your permission to upload your public-channel messages and position.</p>
+              <p><b>It isn't required:</b> your radio talks on the mesh the same either way. <b>It isn't privacy either:</b> anyone in radio range can still hear the public channel. Leaving it off only asks gateways not to put your traffic online.</p>
+            </details>
+          </div>
           <ul id="c-notes"></ul>
           <div class="meta">Source: <a id="c-source" target="_blank" rel="noopener noreferrer"></a> · checked <span id="c-checked"></span></div>
         </div>
@@ -105,8 +121,8 @@
             <div class="hint">0 = region max.</div></div>
           <div><label for="freqoff">Freq offset (Hz)</label><input id="freqoff" type="number" placeholder="0"></div>
         </div>
-        <label class="inline"><input type="checkbox" id="okmqtt"> OK to MQTT</label>
-        <label class="inline"><input type="checkbox" id="ignoremqtt"> Ignore MQTT</label>
+        <label class="inline"><input type="checkbox" id="okmqtt"> OK to MQTT <span class="hint">(allow gateways to put my public traffic online)</span></label>
+        <label class="inline"><input type="checkbox" id="ignoremqtt"> Ignore MQTT <span class="hint">(don't relay messages that arrived from the internet)</span></label>
         <label class="inline"><input type="checkbox" id="rxboost"> SX126x RX boosted gain</label>
 
         <details>
@@ -170,9 +186,30 @@
 </main>
 
 <hr class="fade">
+<section class="panel prereq" id="privacy">
+  <h2><span><span class="n">&#9679;</span>Privacy &amp; how to check it</span></h2>
+  <h3>What this page does with your data</h3>
+  <ul class="plain">
+    <li><b>Nothing leaves your computer except to your radio.</b> Names, Bluetooth PIN, WiFi password and channel keys are sent over the USB cable to the board you plugged in. They aren't uploaded, logged or saved, and they're gone when you close the tab.</li>
+    <li><b>No cookies, no local storage, no analytics, no trackers, no third-party scripts or fonts.</b> Everything the page needs is served from this site.</li>
+    <li><b>Two outside requests, only when you press a button,</b> both to Meshtastic's own servers:
+      <ul>
+        <li><code>api.meshtastic.org</code> to find the current beta firmware version.</li>
+        <li><code>release.meshtastic.org</code> to download that firmware, only for "Erase, flash &amp; configure".</li>
+      </ul>
+      These requests carry no cookies and no referrer. Like any download, Meshtastic's servers see your IP address.</li>
+    <li><b>Enforced by your browser.</b> The page's Content-Security-Policy tells your browser to block every other connection, so a bug in the page can't send your data anywhere else. The checks below let you confirm the page you got is the published one.</li>
+  </ul>
+  <h3>How to check it yourself</h3>
+  <ul class="plain">
+    <li>Source code: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> (GPL-3.0).</li>
+    <li>This build: commit <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a>, <code>app.js</code> sha256 <code class="hash">{{APP_SHA256}}</code>.</li>
+    <li>Rebuild it with <code>npm ci &amp;&amp; npm run build</code> and the hash matches, or run <code>gh attestation verify app.js --repo {{REPO}}</code> to confirm GitHub built it from that commit.</li>
+    <li>Or open your browser's developer tools, Network tab: nothing goes out until you press a button.</li>
+  </ul>
+</section>
+
 <footer class="site">
-  <p><b>Privacy.</b> No cookies, no storage, no analytics. This page contacts two hosts, and only when you press a button: <code>api.meshtastic.org</code> (which firmware is current) and <code>release.meshtastic.org</code> (the firmware itself, only for "Erase, flash &amp; configure"). Names, PIN, WiFi password and keys go over USB to your radio and nowhere else. The page's Content-Security-Policy enforces this.</p>
-  <p><b>Audit.</b> Source: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> · build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a> · <code>app.js</code> sha256 <code class="hash">{{APP_SHA256}}</code>. Rebuild with <code>npm ci &amp;&amp; npm run build</code> and compare.</p>
   <p>Unofficial; not affiliated with Meshtastic LLC. Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0.</p>
 </footer>
 </div>

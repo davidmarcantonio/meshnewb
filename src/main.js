@@ -80,6 +80,13 @@ const strip = (msg) => { const o = { ...msg }; delete o.$typeName; return o; };
 
 // ---------- mode + community UI ----------
 let mode = "community";
+let conn = "ble";
+function setConn(c) {
+  conn = c;
+  document.querySelectorAll("[data-conn]").forEach((b) => b.classList.toggle("on", b.dataset.conn === c));
+  $("ble-fields").hidden = c !== "ble";
+  $("wifi-fields").hidden = c !== "wifi";
+}
 function setMode(m) {
   mode = m;
   document.querySelectorAll("[data-mode]").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
@@ -108,6 +115,7 @@ function renderCommunity() {
   const c = currentCommunity();
   const u = c.uses[$("usecase").value];
   $("c-okmqtt").checked = c.okToMqtt;
+  $("c-mqtt-advice").textContent = c.mqttAdvice || "";
   const rows = [
     ["Region / preset", `${REGION_LABEL[c.lora.region]} · ${PRESET_LABEL[c.lora.preset]}`],
     ["Frequency slot", c.lora.slot ? String(c.lora.slot) : "auto (0)"],
@@ -169,7 +177,7 @@ function readSettings() {
   const p = {
     longName: $("longname").value.trim(),
     shortName: $("shortname").value.trim(),
-    conn: document.querySelector('input[name="conn"]:checked').value,
+    conn,
     pin: $("pin").value.trim(),
     ssid: $("ssid").value.trim(),
     wifiPsk: $("wifipsk").value,
@@ -415,7 +423,7 @@ async function verify(s) {
     ["TX enabled", String(L.txEnabled), L.txEnabled === true],
     ["TX power", `${L.txPower} dBm${L.txPower === 0 ? " (region max)" : ""}`, L.txPower === s.txPower],
     ["Hop limit", String(L.hopLimit), L.hopLimit === s.hopLimit],
-    ["OK to MQTT", String(!!L.configOkToMqtt), !!L.configOkToMqtt === !!s.okToMqtt],
+    ["On community maps (OK to MQTT)", L.configOkToMqtt ? "yes" : "no", !!L.configOkToMqtt === !!s.okToMqtt],
     ["Role", ROLE_LABEL[D.role ?? 0] ?? D.role, (D.role ?? 0) === s.role],
     ["Names", `${me.longName} / ${me.shortName}`, me.longName === s.longName && me.shortName === s.shortName],
     ["Primary channel", st.channels[0]?.settings?.name || "public default", true],
@@ -513,10 +521,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-customize").onclick = customize;
   $("usepreset").onchange = syncPresetFields;
   $("btn-genpin").onclick = () => ($("pin").value = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)));
-  document.querySelectorAll('input[name="conn"]').forEach((r) => (r.onchange = () => {
-    const wifi = $("conn-wifi").checked;
-    $("ble-fields").hidden = wifi; $("wifi-fields").hidden = !wifi;
-  }));
+  document.querySelectorAll("[data-conn]").forEach((b) => (b.onclick = () => setConn(b.dataset.conn)));
   $("btn-full").onclick = () => run("full");
   $("btn-config").onclick = () => run("config");
 

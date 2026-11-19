@@ -117,3 +117,19 @@ footer.site code.hash { word-break: break-all; }
 .check.good { border-color: rgba(143,193,163,.45); }
 .check.bad { border-color: rgba(224,143,143,.6); color: var(--text); }
 .check .ok, .check .err { font-weight: 500; }
+
+.privacy-teaser { border-color: rgba(145,132,217,.45); }
+.privacy-teaser h2 .n, #privacy h2 .n { color: var(--accent); font-size: 10px; }
+.small-link { font: 400 12px var(--font); text-transform: none; letter-spacing: 0; }
+ul.plain { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
+ul.plain li { margin: 6px 0; }
+ul.plain b { color: var(--text); font-weight: 500; }
+ul.plain ul { padding-left: 18px; }
+#privacy h3 { font-weight: 500; font-size: 15px; letter-spacing: -.01em; margin: 14px 0 2px; color: var(--text); }
+#privacy h3:first-of-type { margin-top: 2px; }
+.mqtt { margin-top: 6px; }
+.mqtt .tag { font: 400 11px var(--mono); color: var(--muted); }
+details.mini summary { margin-top: 6px; font-size: 12px; }
+details.mini p { font-size: 13px; color: var(--text-2); margin: 6px 0; }
+details.mini b { color: var(--text); font-weight: 500; }
+label.inline .hint { display: inline; margin: 0; }

@@ -45,7 +45,7 @@ try:
     def b_(pg): me(pg); pg.select_option("#community","socal-lt"); pg.select_option("#usecase","everyday")
     scenario("SoCal LongTurbo everyday", b_)
     def c(pg):
-        pg.fill("#longname","Desert Rat"); pg.fill("#shortname","DR1"); pg.check("#conn-wifi"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
+        pg.fill("#longname","Desert Rat"); pg.fill("#shortname","DR1"); pg.click("[data-conn=wifi]"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
         pg.select_option("#community","hdmesh"); pg.select_option("#usecase","home"); pg.click("#btn-customize")
         pg.fill("#txpower","22"); pg.fill("#hops","5"); pg.click("text=Channels (blank = public default)"); pg.fill("#churl", URL_CH)
         pg.click("text=Broadcast intervals")

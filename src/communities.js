@@ -22,6 +22,7 @@ const CHECKED = "2026-11-18";
 export const COMMUNITIES = [
   {
     id: "baymesh",
+    mqttAdvice: "Optional. BayMe.sh: turn on only if you want your public messages online (Discord bridge, Meshview).",
     name: "BayMe.sh — SF Bay Area",
     area: "San Francisco, East Bay, Peninsula, South Bay, North Bay",
     source: "https://bayme.sh/docs/getting-started/recommended-settings/",
@@ -42,6 +43,7 @@ export const COMMUNITIES = [
   },
   {
     id: "socal-lt",
+    mqttAdvice: "Recommended by SoCal Mesh so your node shows up on community maps.",
     name: "SoCal Mesh — LongTurbo (current homepage default)",
     area: "Laguna / Orange County / greater SoCal",
     source: "https://socalmesh.org/",
@@ -57,6 +59,7 @@ export const COMMUNITIES = [
   },
   {
     id: "socal-lf",
+    mqttAdvice: "Recommended by SoCal Mesh so your node shows up on community maps.",
     name: "SoCal Mesh — LongFast (best-practices page)",
     area: "Laguna / Orange County / greater SoCal",
     source: "https://socalmesh.org/help/best-practices/",
@@ -69,6 +72,7 @@ export const COMMUNITIES = [
   },
   {
     id: "cvm",
+    mqttAdvice: "Recommended by Central Valley Mesh; it feeds their MeshInfo map.",
     name: "Central Valley Mesh — Bakersfield to Stockton",
     area: "Fresno, Bakersfield, Modesto, Stockton, Merced",
     source: "https://centralvalleymesh.net/docs/getting-started/",
@@ -88,6 +92,7 @@ export const COMMUNITIES = [
   },
   {
     id: "visalia",
+    mqttAdvice: "Visalia Mesh asks you to turn it on.",
     name: "Visalia Mesh — Visalia / Tulare County",
     area: "Visalia and surrounding towns",
     source: "https://visaliamesh.com/wiki",
@@ -107,6 +112,7 @@ export const COMMUNITIES = [
   },
   {
     id: "hdmesh",
+    mqttAdvice: "High Desert Mesh asks all nodes to allow it.",
     name: "High Desert Mesh — Victorville / Hesperia / Apple Valley",
     area: "Victor Valley, High Desert",
     source: "https://hdmesh.org/meshtastic-node-configuration/",
