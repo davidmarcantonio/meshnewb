@@ -1,6 +1,6 @@
 # MeshNewb
 
-Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Pick a California community preset, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
+Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Pick your state and community to get that mesh's published settings, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
 
 Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
 
@@ -15,24 +15,24 @@ Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic 
 ## Privacy
 
 - No cookies, `localStorage`, analytics, beacons or third-party scripts.
-- Loading the page makes no requests beyond its own files (HTML, JS, CSS, fonts).
+- Loading the page makes no requests beyond its own files (HTML, JS, CSS, fonts, and the community presets under `presets/`).
 - The page contacts two hosts, and only after you press a button:
   - `api.meshtastic.org`: which firmware is the current beta.
   - `release.meshtastic.org`: the firmware files, and only for "Erase, flash & configure".
 - Requests send no referrer and no credentials.
 - Names, PIN, WiFi password and channel keys go over USB to your radio and nowhere else.
-- A `Content-Security-Policy` in `index.html` enforces all of this: `default-src 'none'`, `script-src 'self'`, and `connect-src` limited to the two hosts above. Any other request is blocked by the browser. `tests/csp_probe.py` checks this.
+- A `Content-Security-Policy` in `index.html` enforces all of this: `default-src 'none'`, `script-src 'self'`, and `connect-src` limited to this site itself (for the preset files) and the two hosts above. Any other request is blocked by the browser. `tests/csp_probe.py` checks this.
 
 ## Auditing what you're running
 
 1. **Source:** this repo. All of the app's own code is in `src/`. The board list and tested firmware version are in `data/`.
 2. **Build:** GitHub Actions builds from a tagged commit (`.github/workflows/pages.yml`, actions pinned to commit SHAs) and deploys to GitHub Pages.
-3. **Provenance:** each deploy publishes a signed build attestation for `index.html`, `app.js` and `app.css`. Check one with:
+3. **Provenance:** each deploy publishes a signed build attestation for `index.html`, `app.js`, `app.css`, `build.json` and `presets/index.json`. `build.json` names the app commit, the presets commit and date, and the sha256 of every preset file. Check one with:
    ```sh
    curl -sO https://<pages-host>/app.js
    gh attestation verify app.js --repo davidmarcantonio/meshnewb
    ```
-4. **Reproduce:** `app.js` contains no timestamps or commit info, so the same commit always builds to the same bytes:
+4. **Reproduce:** `app.js` contains no timestamps, commit info or preset data, so the same commit always builds to the same bytes, whatever the presets are:
    ```sh
    git checkout <commit shown in the page footer>
    npm ci && npm run build
@@ -61,11 +61,24 @@ nRF52 boards (T-Echo, RAK4631): flash the UF2 by drag-and-drop, then use "Config
 
 ## Community presets
 
-`src/communities.js`. Each entry links its source page and the date it was checked. Communities that publish no settings are listed but can't be selected. Settings change, so pull requests with a source link are welcome.
+Presets live in their own repository, [davidmarcantonio/meshtastic-us-presets](https://github.com/davidmarcantonio/meshtastic-us-presets) (CC0): one JSON file per US community, each with its source link and the date it was checked. Add or correct a community there.
+
+- **Build time, not run time.** `build.mjs` copies `index.json` and the community files into `dist/presets/`. The page reads them from its own host and never contacts GitHub.
+- **`app.js` doesn't change when presets do.** Presets are data files, not bundled code, so the `app.js` hash in the footer stays the same across preset updates.
+- **Daily refresh.** The deploy workflow runs once a day. It compares the presets repo's latest `main` commit with the one recorded in the live `build.json`. If it moved, it rebuilds the app commit that is already live with the new presets and redeploys. No token or secret is involved; the presets repo is public.
+- **What you're looking at.** The footer shows "Presets as of <date>, commit <sha>". The same values are in `build.json` and covered by the build attestation.
+- **Published vs listed.** A community with published settings gets a preset. One that keeps its settings in Discord or similar is shown with a link to the group and no preset.
+
+To build against a local checkout or a specific presets commit:
+
+```sh
+node build.mjs --presets ../meshtastic-us-presets
+PRESETS_COMMIT=<sha> npm run build
+```
 
 ## Tests
 
-`npm test` builds the app and a fake Meshtastic node (a mocked `navigator.serial` that speaks the real framed protobuf protocol). It then runs end-to-end scenarios in headless Chrome with the CSP enforced, and checks that the CSP blocks unlisted hosts. Needs Python 3 + Playwright and a Chrome at `/usr/bin/google-chrome`.
+`npm test` builds the app (with the preset snapshot in `tests/fixtures/presets`) and a fake Meshtastic node (a mocked `navigator.serial` that speaks the real framed protobuf protocol). It then runs end-to-end scenarios in headless Chrome with the CSP enforced, and checks that the CSP blocks unlisted hosts. Needs Python 3 + Playwright and a Chrome at `/usr/bin/google-chrome`.
 
 ## License
 

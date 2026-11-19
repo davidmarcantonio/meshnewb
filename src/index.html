@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src https://api.meshtastic.org https://release.meshtastic.org; base-uri 'none'; form-action 'none'; manifest-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://api.meshtastic.org https://release.meshtastic.org; base-uri 'none'; form-action 'none'; manifest-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="MeshNewb: flash and configure a Meshtastic node from your browser, with California community presets. No cookies, no analytics, open source.">
+<meta name="description" content="MeshNewb: flash and configure a Meshtastic node from your browser, with community presets for meshes across the United States. No cookies, no analytics, open source.">
 <title>MeshNewb — set up a Meshtastic node from your browser</title>
 <link rel="stylesheet" href="app.css" integrity="{{CSS_SRI}}">
 <script type="module" src="app.js" integrity="{{APP_SRI}}"></script>
@@ -15,7 +15,7 @@
 <header class="site">
   <div class="eyebrow">Meshtastic · Web Serial</div>
   <h1>MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
-  <p>Pick your community, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+  <p>Pick your state and community, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
   <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
 </header>
 
@@ -73,11 +73,25 @@
       <div class="tabs"><button type="button" data-mode="community" class="on">Community preset</button><button type="button" data-mode="manual">Set everything manually</button></div>
 
       <div id="panel-community">
-        <label for="community">California community</label>
-        <select id="community"></select>
-        <label for="usecase">What is this radio for?</label>
-        <select id="usecase"></select>
-        <div class="card">
+        <label for="state">State</label>
+        <select id="state" disabled><option value="" selected disabled>Choose your state…</option></select>
+        <div id="community-row" hidden>
+          <label for="community">Community</label>
+          <select id="community"></select>
+        </div>
+        <div id="usecase-row" hidden>
+          <label for="usecase">What is this radio for?</label>
+          <select id="usecase"></select>
+        </div>
+        <div class="hint" id="c-status" hidden></div>
+        <div class="card" id="c-listed" hidden>
+          <p>There is no preset for <b id="c-listed-name"></b> yet: its radio settings aren't on a public page we could verify.</p>
+          <div class="hint" id="c-listed-area"></div>
+          <p>Get them from <span id="c-listed-kind"></span>: <a id="c-listed-link" target="_blank" rel="noopener noreferrer"></a>. Most groups pin or post their settings for newcomers. Then come back and use "Set everything manually".</p>
+          <ul id="c-listed-notes"></ul>
+          <div class="meta">Listed, checked <span id="c-listed-checked"></span></div>
+        </div>
+        <div class="card" id="c-card" hidden>
           <div class="hint" id="c-area"></div>
           <table><tbody id="c-summary"></tbody></table>
           <div class="mqtt">
@@ -91,8 +105,8 @@
           <ul id="c-notes"></ul>
           <div class="meta">Source: <a id="c-source" target="_blank" rel="noopener noreferrer"></a> · checked <span id="c-checked"></span></div>
         </div>
-        <div class="buttons"><button type="button" class="small quiet" id="btn-customize">Customize these values →</button></div>
-        <div class="meta">No published settings yet: <span id="unpublished"></span></div>
+        <div class="buttons"><button type="button" class="small quiet" id="btn-customize" hidden>Customize these values →</button></div>
+        <div class="meta">Don't see your group? It can be added at <a href="https://github.com/{{PRESETS_REPO}}" target="_blank" rel="noopener noreferrer">github.com/{{PRESETS_REPO}}</a>.</div>
       </div>
 
       <div id="panel-manual" hidden>
@@ -191,7 +205,7 @@
   <h3>What this page does with your data</h3>
   <ul class="plain">
     <li><b>Nothing leaves your computer except to your radio.</b> Names, Bluetooth PIN, WiFi password and channel keys are sent over the USB cable to the board you plugged in. They aren't uploaded, logged or saved, and they're gone when you close the tab.</li>
-    <li><b>No cookies, no local storage, no analytics, no trackers, no third-party scripts or fonts.</b> Everything the page needs is served from this site.</li>
+    <li><b>No cookies, no local storage, no analytics, no trackers, no third-party scripts or fonts.</b> Everything the page needs is served from this site, including the community presets (the <code>presets/</code> files, copied in when the site is built).</li>
     <li><b>Two outside requests, only when you press a button,</b> both to Meshtastic's own servers:
       <ul>
         <li><code>api.meshtastic.org</code> to find the current beta firmware version.</li>
@@ -204,12 +218,14 @@
   <ul class="plain">
     <li>Source code: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> (GPL-3.0).</li>
     <li>This build: commit <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a>, <code>app.js</code> sha256 <code class="hash">{{APP_SHA256}}</code>.</li>
+    <li>Community presets: {{PRESETS_COUNT}} communities as of {{PRESETS_DATE}}, commit <a href="https://github.com/{{PRESETS_REPO}}/commit/{{PRESETS_COMMIT}}" rel="noopener noreferrer"><code>{{PRESETS_COMMIT_SHORT}}</code></a> of <a href="https://github.com/{{PRESETS_REPO}}" rel="noopener noreferrer">{{PRESETS_REPO}}</a> (CC0). They are data files under <code>presets/</code> on this site, checked for updates daily, and never change <code>app.js</code>.</li>
     <li>Rebuild it with <code>npm ci &amp;&amp; npm run build</code> and the hash matches, or run <code>gh attestation verify app.js --repo {{REPO}}</code> to confirm GitHub built it from that commit.</li>
     <li>Or open your browser's developer tools, Network tab: nothing goes out until you press a button.</li>
   </ul>
 </section>
 
 <footer class="site">
+  <p>App build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a>. Presets as of {{PRESETS_DATE}}, commit <a href="https://github.com/{{PRESETS_REPO}}/commit/{{PRESETS_COMMIT}}" rel="noopener noreferrer"><code>{{PRESETS_COMMIT_SHORT}}</code></a>.</p>
   <p>Unofficial; not affiliated with Meshtastic LLC. Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0.</p>
 </footer>
 </div>
