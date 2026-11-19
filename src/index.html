@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src https://api.meshtastic.org https://release.meshtastic.org; base-uri 'none'; form-action 'none'; manifest-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="Flash and configure a Meshtastic node from your browser, with California community presets. No cookies, no analytics, open source.">
-<title>MeshProv — flash &amp; configure a Meshtastic node</title>
+<meta name="description" content="MeshNewb: flash and configure a Meshtastic node from your browser, with California community presets. No cookies, no analytics, open source.">
+<title>MeshNewb — set up a Meshtastic node from your browser</title>
 <link rel="stylesheet" href="app.css" integrity="{{CSS_SRI}}">
 <script type="module" src="app.js" integrity="{{APP_SRI}}"></script>
 </head>
@@ -14,13 +14,24 @@
 <div class="wrap">
 <header class="site">
   <div class="eyebrow">Meshtastic · Web Serial</div>
-  <h1>MeshProv<span class="dot">.</span> flash &amp; configure a node</h1>
+  <h1>MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
   <p>Pick your community, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
   <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
 </header>
 
+<section class="panel prereq" id="prereq">
+  <h2><span><span class="n">00</span>Before you start</span><small>most failed flashes are one of these</small></h2>
+  <div id="browser-check" class="check"></div>
+  <ol class="checklist">
+    <li><b>Browser.</b> Desktop Chrome, Edge or Opera. Firefox 151+ should also work. Safari and iPhone/iPad can't talk to USB devices from a web page. Android Chrome has only just added support and isn't tested here.</li>
+    <li><b>A USB data cable, not a charge-only one.</b> Voltage isn't the issue (USB is always 5&nbsp;V). Cheap charge-only cables simply leave out the data wires, and they look identical. If your computer doesn't see the board, swap cables first. Quick test: a cable that lets your phone show up as a drive on your computer carries data. Most current boards are USB-C; plug straight into the computer, not through a hub or monitor.</li>
+    <li><b>USB driver, sometimes.</b> Many ESP32 boards use a CP210x or CH9102 USB chip. Recent macOS and Windows 11 usually handle it on their own; if no port shows up, install the driver from <a href="https://meshtastic.org/docs/getting-started/serial-drivers/esp32/" target="_blank" rel="noopener noreferrer">Meshtastic's driver page</a>, then restart the browser.</li>
+    <li><b>Antenna on first.</b> Screw the antenna on before plugging the board in. Transmitting without one can damage the radio.</li>
+    <li><b>Still not detected?</b> Hold the board's BOOT button while plugging in the cable, then release. Close any other app using the port (Meshtastic app on desktop, serial monitor, Arduino IDE).</li>
+  </ol>
+</section>
+
 <main>
-  <div>
     <!-- ===== Always required: what's personal to you ===== -->
     <section class="panel">
       <h2><span><span class="n">01</span>You</span><small>always required</small></h2>
@@ -138,9 +149,7 @@
       </div>
       <div class="hint">nRF52 boards (T-Echo, RAK4631): drag the UF2 onto the board's USB drive, then use "Configure only".</div>
     </section>
-  </div>
 
-  <div class="col-right">
     <section class="panel">
       <h2><span><span class="n">04</span>Go</span></h2>
       <ol class="steps">
@@ -158,14 +167,13 @@
       <h2><span>Verification</span><small>read back from the node</small></h2>
       <table><tbody></tbody></table>
     </section>
-  </div>
 </main>
 
 <hr class="fade">
 <footer class="site">
   <p><b>Privacy.</b> No cookies, no storage, no analytics. This page contacts two hosts, and only when you press a button: <code>api.meshtastic.org</code> (which firmware is current) and <code>release.meshtastic.org</code> (the firmware itself, only for "Erase, flash &amp; configure"). Names, PIN, WiFi password and keys go over USB to your radio and nowhere else. The page's Content-Security-Policy enforces this.</p>
   <p><b>Audit.</b> Source: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> · build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a> · <code>app.js</code> sha256 <code class="hash">{{APP_SHA256}}</code>. Rebuild with <code>npm ci &amp;&amp; npm run build</code> and compare.</p>
-  <p>Unofficial; not affiliated with Meshtastic LLC. Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0. Desktop Chrome or Edge required (Web Serial).</p>
+  <p>Unofficial; not affiliated with Meshtastic LLC. Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0.</p>
 </footer>
 </div>
 </body>

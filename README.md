@@ -1,8 +1,16 @@
-# MeshProv
+# MeshNewb
 
 Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Pick a California community preset, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
 
-Unofficial. Not affiliated with Meshtastic LLC.
+Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
+
+## Before you start
+
+- **Browser:** desktop Chrome, Edge or Opera (Firefox 151+ should work). Not Safari, not iPhone/iPad.
+- **Cable:** a USB *data* cable. Charge-only cables look identical but leave out the data wires, and they are the most common reason a board isn't detected. Voltage is not the issue; USB is always 5 V.
+- **Driver:** CP210x or CH9102 on some ESP32 boards, if no port appears ([Meshtastic driver page](https://meshtastic.org/docs/getting-started/serial-drivers/esp32/)).
+- **Antenna** on before powering the board.
+- **Still not detected:** hold BOOT while plugging in.
 
 ## Privacy
 
@@ -22,7 +30,7 @@ Unofficial. Not affiliated with Meshtastic LLC.
 3. **Provenance:** each deploy publishes a signed build attestation for `index.html`, `app.js` and `app.css`. Check one with:
    ```sh
    curl -sO https://<pages-host>/app.js
-   gh attestation verify app.js --repo davidmarcantonio/meshprov
+   gh attestation verify app.js --repo davidmarcantonio/meshnewb
    ```
 4. **Reproduce:** `app.js` contains no timestamps or commit info, so the same commit always builds to the same bytes:
    ```sh

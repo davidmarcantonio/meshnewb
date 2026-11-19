@@ -1,6 +1,6 @@
 {
-  "name": "meshprov",
-  "version": "0.3.0",
+  "name": "meshnewb",
+  "version": "0.4.0",
   "description": "Flash and configure a Meshtastic node from the browser, with California community presets.",
   "scripts": {
     "build": "node build.mjs",

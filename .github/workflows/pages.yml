@@ -1,4 +1,4 @@
-# Build MeshProv from a tagged commit, attest the exact files, deploy to GitHub Pages.
+# Build MeshNewb from a tagged commit, attest the exact files, deploy to GitHub Pages.
 # Actions are pinned to commit SHAs so the pipeline itself is auditable.
 name: Build and deploy
 

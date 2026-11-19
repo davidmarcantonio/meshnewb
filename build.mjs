@@ -35,7 +35,7 @@ const sri = (b) => "sha384-" + createHash("sha384").update(b).digest("base64");
 
 let commit = process.env.GITHUB_SHA;
 if (!commit) { try { commit = execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { commit = "uncommitted"; } }
-const repo = process.env.GITHUB_REPOSITORY || "davidmarcantonio/meshprov";
+const repo = process.env.GITHUB_REPOSITORY || "davidmarcantonio/meshnewb";
 const fw = JSON.parse(readFileSync("data/firmware.json", "utf8"));
 
 const vars = {

@@ -1,4 +1,4 @@
-// MeshProv — flash stock Meshtastic firmware, then push settings over Web Serial.
+// MeshNewb — flash stock Meshtastic firmware, then push settings over Web Serial.
 // Stack mirrors the official flasher: esptool-js + @meshtastic/core + transport-web-serial.
 import { ESPLoader, Transport } from "esptool-js";
 import { MeshDevice, Protobuf } from "@meshtastic/core";
@@ -449,7 +449,7 @@ async function verify(s) {
 async function run(kind) {
   const { s, problems } = readSettings();
   if (problems.length) { problems.forEach(err); return; }
-  if (!("serial" in navigator)) { err("This browser has no Web Serial. Use desktop Chrome or Edge."); return; }
+  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
   busy(true);
   $("verify").hidden = true;
   ["2", "3", "4"].forEach((n) => setStep(n, ""));
@@ -465,8 +465,31 @@ async function run(kind) {
   } catch (e) {
     err(e.message || String(e)); console.error(e);
     document.querySelectorAll('[data-state="active"]').forEach((el) => (el.dataset.state = "fail"));
-    if (/port|open|lock/i.test(e.message)) warn("Close any other tab/app using the serial port (Meshtastic web client, serial monitor, Arduino IDE).");
+    if (e.name === "NotFoundError" || /No port selected/i.test(e.message)) {
+      warn("No board picked. If your board wasn't in the list: try a different USB cable (charge-only cables are the #1 cause), plug directly into the computer, install the CP210x/CH9102 driver, or hold BOOT while plugging in.");
+    } else if (/port|open|lock/i.test(e.message)) warn("Close any other tab/app using the serial port (Meshtastic desktop app, serial monitor, Arduino IDE).");
+    else if (/timed out|handshake|sync|connect/i.test(e.message)) warn("The board stopped answering. Try another cable or USB port, or hold BOOT while plugging in and press the button again.");
   } finally { busy(false); }
+}
+
+// ---------- browser check ----------
+function browserCheck() {
+  const el = $("browser-check");
+  const ua = navigator.userAgent;
+  const mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (!("serial" in navigator)) {
+    el.className = "check bad";
+    el.innerHTML = '<span class="err">✘ This browser can\'t reach USB serial devices.</span> Open this page in desktop Chrome, Edge or Opera (or Firefox 151+).';
+  } else if (!window.isSecureContext) {
+    el.className = "check bad";
+    el.innerHTML = '<span class="err">✘ Not a secure page.</span> Open it over https:// or http://localhost.';
+  } else if (mobile) {
+    el.className = "check bad";
+    el.innerHTML = '<span class="warn">! Mobile browser detected.</span> It reports USB serial support, but flashing is only tested on desktop.';
+  } else {
+    el.className = "check good";
+    el.innerHTML = '<span class="ok">✔ Your browser supports USB serial.</span> Next: check your cable.';
+  }
 }
 
 // ---------- boot ----------
@@ -498,6 +521,5 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-config").onclick = () => run("config");
 
   renderCommunity(); syncPresetFields(); setMode("community");
-  if (!("serial" in navigator)) err("No Web Serial in this browser — use desktop Chrome or Edge.");
-  if (!window.isSecureContext) err("Not a secure context — serve over https:// or http://localhost.");
+  browserCheck();
 });
