@@ -1,0 +1,23 @@
+{
+  "source": "https://api.meshtastic.org/resource/deviceHardware (filtered: architecture esp32*, activelySupported)",
+  "snapshot": "2026-11-19",
+  "boards": [
+    ["heltec-v3","Heltec V3"],["heltec-v4","Heltec V4"],["heltec-v4-r8-oled","Heltec V4 R8"],["heltec-wsl-v3","Heltec Wireless Stick Lite V3"],
+    ["heltec-wireless-tracker","Heltec Wireless Tracker V1.1"],["heltec-wireless-tracker-v2","Heltec Wireless Tracker V2"],["heltec-wireless-paper","Heltec Wireless Paper"],
+    ["heltec-vision-master-t190","Heltec Vision Master T190"],["heltec-vision-master-e213","Heltec Vision Master E213"],["heltec-vision-master-e290","Heltec Vision Master E290"],
+    ["heltec-ht62-esp32c3-sx1262","Heltec HT62"],["heltec-rc32","Heltec RC32"],["heltec-rcc6","Heltec RCC6"],
+    ["tbeam","LILYGO T-Beam"],["tbeam-s3-core","LILYGO T-Beam Supreme"],["t-beam-1w","LilyGo T-Beam 1W"],["t-beam-bpf","LilyGo T-Beam BPF"],
+    ["tlora-v2-1-1_6","LILYGO T-LoRa V2.1-1.6"],["tlora-v2-1-1_8","LILYGO T-LoRa V2.1-1.8"],["tlora-t3s3-v1","LILYGO T-LoRa T3-S3"],["tlora-t3s3-epaper","LILYGO T-LoRa T3-S3 E-Ink"],
+    ["tlora-c6","LilyGo T-Lora C6"],["tlora-pager","LILYGO T-LoRa Pager"],["t-deck","LILYGO T-Deck"],["t-deck-pro","LILYGO T-Deck Pro"],["t-watch-s3","LILYGO T-Watch S3"],
+    ["t5s3-epaper-v1","LilyGo T5 E-paper S3 Pro"],["t5s3-epaper-v2","LilyGo T5 E-paper S3 Pro V2"],["mini-epaper-s3","LilyGo Mini E-paper S3"],
+    ["station-g1","Station G1"],["station-g2","Station G2"],["station-g3","Station G3"],
+    ["rak11200","RAK WisBlock 11200"],["rak3312","RAK3312"],["rak_wismesh_tap_v2","RAK WisMesh Tap V2"],
+    ["seeed-xiao-s3","Seeed Xiao ESP32-S3"],["seeed-sensecap-indicator","Seeed SenseCAP Indicator"],["seeed_wio_tracker_L2","Seeed Wio Tracker L2"],
+    ["thinknode_m2","ThinkNode M2"],["thinknode_m5","ThinkNode M5"],["thinknode_m7","ThinkNode M7"],["thinknode_m9","Elecrow ThinkNode M9"],
+    ["elecrow-adv-24-28-tft","Crowpanel Adv 2.4/2.8 TFT"],["elecrow-adv-35-tft","Crowpanel Adv 3.5 TFT"],["elecrow-adv1-43-50-70-tft","Crowpanel Adv 4.3/5.0/7.0 TFT"],
+    ["m5stack-core","M5 Stack"],["m5stack-unitc6l","M5Stack Unit C6L"],["m5stack-cardputer-adv","Cardputer Mesh Kit"],
+    ["nano-g1","Nano G1"],["nano-g1-explorer","Nano G1 Explorer"],["hydra","Hydra"],["meshtastic-diy-v1","DIY V1"],
+    ["radiomaster_900_bandit_nano","RadioMaster 900 Bandit Nano"],["CDEBYTE_EoRa-S3","EBYTE EoRa-S3"],["picomputer-s3","Pi Computer S3"],["unphone","unPhone"],
+    ["tracksenger","TrackSenger (small TFT)"],["tracksenger-oled","TrackSenger (big OLED)"]
+  ]
+}

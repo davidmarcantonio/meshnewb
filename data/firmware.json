@@ -1,0 +1,1 @@
+{ "tested": "2.7.26.54e0d8d", "note": "At flash time the page asks api.meshtastic.org for the current beta and falls back to this version." }

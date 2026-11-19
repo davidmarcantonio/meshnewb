@@ -1,0 +1,5 @@
+node_modules/
+dist/
+tests/*.bundle.js
+__pycache__/
+tests/screenshot.png

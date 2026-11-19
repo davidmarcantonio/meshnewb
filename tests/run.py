@@ -1,0 +1,56 @@
+import json, subprocess, time, sys
+from playwright.sync_api import sync_playwright
+URL_CH = sys.argv[1]
+srv = subprocess.Popen(["python3","-m","http.server","8765","--directory","dist"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+time.sleep(1)
+fake = open("tests/fake-node.bundle.js").read()
+FW = {"releases":{"stable":[{"id":"v2.7.26.54e0d8d"}],"alpha":[]}}
+HW = [{"displayName":"Heltec V3","platformioTarget":"heltec-v3","architecture":"esp32-s3","activelySupported":True}]
+DONE = "['2','3','4'].some(n=>document.querySelector(`[data-step=\"${n}\"]`).dataset.state==='fail') || document.querySelector('[data-step=\"4\"]').dataset.state==='done' || document.querySelectorAll('#log .err').length>0"
+def scenario(name, fill, shot=None):
+    with sync_playwright() as p:
+        b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+        pg = b.new_page(viewport={"width":1400,"height":1500})
+        errs=[]; pg.on("pageerror", lambda e: errs.append(str(e)))
+        reqs=[]; pg.on("request", lambda r: reqs.append(r.url))
+        csp=[]; pg.on("console", lambda m: ("Content Security Policy" in m.text or "Refused" in m.text) and csp.append(m.text))
+        pg.route("https://api.meshtastic.org/github/firmware/list", lambda r: r.fulfill(json=FW))
+        pg.route("https://api.meshtastic.org/resource/deviceHardware", lambda r: r.fulfill(json=HW))
+        pg.add_init_script(fake)
+        pg.goto("http://localhost:8765/index.html"); pg.wait_for_timeout(600)
+        load_reqs = list(reqs)
+        fill(pg)
+        if shot: pg.screenshot(path=shot, full_page=True)
+        pg.click("#btn-config")
+        for _ in range(180):
+            if pg.evaluate("() => " + DONE): break
+            pg.wait_for_timeout(500)
+        node = pg.evaluate("""() => { const n = window.__fakeNode; const L=n.config.lora,D=n.config.device,P=n.config.position;
+          return { region:L.region, preset:L.modemPreset, usePreset:L.usePreset, slot:L.channelNum, hops:L.hopLimit, tx:L.txPower, txEn:L.txEnabled, okMqtt:L.configOkToMqtt, bw:L.bandwidth,
+            role:D.role, nodeinfo:D.nodeInfoBroadcastSecs, pos:P.positionBroadcastSecs, smart:P.positionBroadcastSmartEnabled, telem:n.module.telemetry.deviceUpdateInterval,
+            bt:[n.config.bluetooth.mode,n.config.bluetooth.fixedPin], wifi:[n.config.network.wifiEnabled,n.config.network.wifiSsid],
+            names:[n.user.longName,n.user.shortName,n.user.isLicensed], ch0:n.channels[0]&&[n.channels[0].settings.name, btoa(String.fromCharCode(...n.channels[0].settings.psk))], chans:Object.keys(n.channels).length, admin:n.adminLog.join(',') } }""")
+        print(f"\n===== {name} =====  pageerrors={errs}  csp_violations={csp}")
+        print("requests on load:", [u.replace("http://localhost:8765","") for u in load_reqs])
+        print("external requests total:", [u for u in reqs if not u.startswith("http://localhost")])
+        print(pg.inner_text("#log"))
+        if pg.is_visible("#verify"): print("--- verify ---\n"+pg.inner_text("#verify"))
+        print("--- node ---", json.dumps(node))
+        b.close()
+def me(pg, ln="Test Node", sn="TST1", pin="246810"):
+    pg.fill("#longname", ln); pg.fill("#shortname", sn); pg.fill("#pin", pin)
+try:
+    def a(pg): me(pg); pg.select_option("#community","baymesh"); pg.select_option("#usecase","home")
+    scenario("BayMesh home base", a)
+    def b_(pg): me(pg); pg.select_option("#community","socal-lt"); pg.select_option("#usecase","everyday")
+    scenario("SoCal LongTurbo everyday", b_)
+    def c(pg):
+        pg.fill("#longname","Desert Rat"); pg.fill("#shortname","DR1"); pg.check("#conn-wifi"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
+        pg.select_option("#community","hdmesh"); pg.select_option("#usecase","home"); pg.click("#btn-customize")
+        pg.fill("#txpower","22"); pg.fill("#hops","5"); pg.click("text=Channels (blank = public default)"); pg.fill("#churl", URL_CH)
+        pg.click("text=Broadcast intervals")
+    scenario("Customize HD Mesh + WiFi + channel URL", c)
+    def d(pg): pg.select_option("#community","cvm")
+    scenario("Validation (nothing personal filled in)", d)
+finally:
+    srv.terminate()

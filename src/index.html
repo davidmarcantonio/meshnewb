@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src https://api.meshtastic.org https://release.meshtastic.org; base-uri 'none'; form-action 'none'; manifest-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Flash and configure a Meshtastic node from your browser, with California community presets. No cookies, no analytics, open source.">
+<title>MeshProv — flash &amp; configure a Meshtastic node</title>
+<link rel="stylesheet" href="app.css" integrity="{{CSS_SRI}}">
+<script type="module" src="app.js" integrity="{{APP_SRI}}"></script>
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <div class="eyebrow">Meshtastic · Web Serial</div>
+  <h1>MeshProv<span class="dot">.</span> flash &amp; configure a node</h1>
+  <p>Pick your community, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+  <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
+</header>
+
+<main>
+  <div>
+    <!-- ===== Always required: what's personal to you ===== -->
+    <section class="panel">
+      <h2><span><span class="n">01</span>You</span><small>always required</small></h2>
+      <div class="row">
+        <div><label for="longname">Long name <span class="req">*</span></label><input id="longname" maxlength="39" placeholder="e.g. dma West Portal">
+          <div class="hint">Shown on the mesh. Skip contact details.</div></div>
+        <div><label for="shortname">Short name <span class="req">*</span></label><input id="shortname" maxlength="4" placeholder="DMA1">
+          <div class="hint">1–4 characters, unique per radio.</div></div>
+      </div>
+      <label>How will your phone talk to it? <span class="req">*</span></label>
+      <label class="inline"><input type="radio" name="conn" value="ble" id="conn-ble" checked> Bluetooth (phone app)</label>
+      <label class="inline"><input type="radio" name="conn" value="wifi" id="conn-wifi"> WiFi (ESP32 only)</label>
+      <div id="ble-fields">
+        <label for="pin">Bluetooth PIN <span class="req">*</span></label>
+        <div class="pinrow"><input id="pin" inputmode="numeric" maxlength="6" placeholder="6 digits"><button type="button" class="small quiet" id="btn-genpin">Generate</button></div>
+        <div class="hint">Write it down. You'll type it when pairing the phone app.</div>
+      </div>
+      <div id="wifi-fields" hidden>
+        <div class="row">
+          <div><label for="ssid">WiFi SSID <span class="req">*</span></label><input id="ssid" autocomplete="off"></div>
+          <div><label for="wifipsk">WiFi password <span class="req">*</span></label><input id="wifipsk" type="password" autocomplete="new-password"></div>
+        </div>
+        <div class="callout">On ESP32 Meshtastic, WiFi on means Bluetooth off. You'll manage the node from its web page on your network instead of the phone app.</div>
+      </div>
+    </section>
+
+    <!-- ===== Radio: community preset or manual ===== -->
+    <section class="panel">
+      <h2><span><span class="n">02</span>Radio settings</span></h2>
+      <div class="tabs"><button type="button" data-mode="community" class="on">Community preset</button><button type="button" data-mode="manual">Set everything manually</button></div>
+
+      <div id="panel-community">
+        <label for="community">California community</label>
+        <select id="community"></select>
+        <label for="usecase">What is this radio for?</label>
+        <select id="usecase"></select>
+        <div class="card">
+          <div class="hint" id="c-area"></div>
+          <table><tbody id="c-summary"></tbody></table>
+          <label class="inline"><input type="checkbox" id="c-okmqtt"> OK to MQTT (lets gateways put your public traffic on maps)</label>
+          <ul id="c-notes"></ul>
+          <div class="meta">Source: <a id="c-source" target="_blank" rel="noopener noreferrer"></a> · checked <span id="c-checked"></span></div>
+        </div>
+        <div class="buttons"><button type="button" class="small quiet" id="btn-customize">Customize these values →</button></div>
+        <div class="meta">No published settings yet: <span id="unpublished"></span></div>
+      </div>
+
+      <div id="panel-manual" hidden>
+        <div class="callout" id="m-basis" hidden></div>
+        <div class="row">
+          <div><label for="region">Region <span class="req">*</span></label><select id="region"></select></div>
+          <div><label for="role">Role</label><select id="role"></select></div>
+        </div>
+        <label class="inline"><input type="checkbox" id="usepreset" checked> Use a modem preset</label>
+        <div class="row">
+          <div><label for="preset">Modem preset</label><select id="preset"></select></div>
+          <div><label for="slot">Frequency slot</label><input id="slot" type="number" min="0" value="0">
+            <div class="hint">0 = auto from channel name. US: LongFast 20, MediumFast 45, LongTurbo 14.</div></div>
+        </div>
+        <div id="custom-modem" hidden>
+          <div class="row3">
+            <div><label for="bw">Bandwidth (kHz)</label><input id="bw" type="number" placeholder="250"></div>
+            <div><label for="sf">Spreading factor</label><input id="sf" type="number" min="7" max="12" placeholder="11"></div>
+            <div><label for="cr">Coding rate (5–8)</label><input id="cr" type="number" min="5" max="8" placeholder="5"></div>
+          </div>
+          <div class="hint">A custom modem only talks to nodes with identical values. Expect an empty mesh.</div>
+        </div>
+        <div class="row3">
+          <div><label for="hops">Hop limit</label><input id="hops" type="number" min="1" max="7" value="3"></div>
+          <div><label for="txpower">TX power (dBm)</label><input id="txpower" type="number" min="0" max="30" value="0">
+            <div class="hint">0 = region max.</div></div>
+          <div><label for="freqoff">Freq offset (Hz)</label><input id="freqoff" type="number" placeholder="0"></div>
+        </div>
+        <label class="inline"><input type="checkbox" id="okmqtt"> OK to MQTT</label>
+        <label class="inline"><input type="checkbox" id="ignoremqtt"> Ignore MQTT</label>
+        <label class="inline"><input type="checkbox" id="rxboost"> SX126x RX boosted gain</label>
+
+        <details>
+          <summary>Advanced radio: frequency override</summary>
+          <label for="overridefreq">Override frequency (MHz)</label><input id="overridefreq" type="number" step="0.001" placeholder="blank = use slot">
+          <div class="hint">Bypasses slot math. Mostly for ham-band experiments. Meshtastic has no "antenna gain" setting; the antenna is the antenna.</div>
+        </details>
+        <details>
+          <summary>Broadcast intervals (blank = firmware default)</summary>
+          <div class="row">
+            <div><label for="nodeinfo">NodeInfo every (s)</label><input id="nodeinfo" type="number" placeholder="10800"></div>
+            <div><label for="posint">Position every (s)</label><input id="posint" type="number" placeholder="900"></div>
+          </div>
+          <div class="row">
+            <div><label for="smart">Smart position</label><select id="smart"><option value="">default</option><option value="true">on</option><option value="false">off</option></select></div>
+            <div><label for="telem">Device telemetry every (s)</label><input id="telem" type="number" placeholder="1800"></div>
+          </div>
+        </details>
+        <details>
+          <summary>Channels (blank = public default)</summary>
+          <label for="churl">Channel URL</label>
+          <input id="churl" placeholder="https://meshtastic.org/e/#...">
+          <div class="hint">Overrides name/PSK below; its preset and slot win.</div>
+          <div class="row">
+            <div><label for="chname">Primary name</label><input id="chname" maxlength="11" placeholder="blank = preset default"></div>
+            <div><label for="chpsk">Primary PSK</label><input id="chpsk" placeholder="default | random | base64"></div>
+          </div>
+          <div class="hint">Renaming the primary moves you off the community frequency unless you set the slot above.</div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2><span><span class="n">03</span>Hardware</span></h2>
+      <label for="board">Board (ESP32 family)</label>
+      <select id="board"></select>
+      <div class="row">
+        <div><label for="baud">Flash baud</label><select id="baud"><option>115200</option><option selected>460800</option><option>921600</option></select></div>
+        <div><label for="localbin">…or a local .factory.bin</label><input id="localbin" type="file" accept=".bin"></div>
+      </div>
+      <div class="hint">nRF52 boards (T-Echo, RAK4631): drag the UF2 onto the board's USB drive, then use "Configure only".</div>
+    </section>
+  </div>
+
+  <div class="col-right">
+    <section class="panel">
+      <h2><span><span class="n">04</span>Go</span></h2>
+      <ol class="steps">
+        <li data-step="1" data-state="done">Settings</li><li data-step="2">Flash</li><li data-step="3">Configure</li><li data-step="4">Verify</li>
+      </ol>
+      <div class="buttons">
+        <button class="act primary" id="btn-full">Erase, flash &amp; configure</button>
+        <button class="act quiet" id="btn-config">Configure only (already flashed)</button>
+      </div>
+      <div class="callout">"Erase" means everything on the radio: nodes, messages, keys. When the browser asks, pick the port that appeared when you plugged in (CP210x, USB JTAG or usbmodem).</div>
+      <p><progress id="progress" max="100" value="0"></progress> <span id="progtext" class="hint"></span></p>
+      <div id="log"></div>
+    </section>
+    <section class="panel" id="verify" hidden>
+      <h2><span>Verification</span><small>read back from the node</small></h2>
+      <table><tbody></tbody></table>
+    </section>
+  </div>
+</main>
+
+<hr class="fade">
+<footer class="site">
+  <p><b>Privacy.</b> No cookies, no storage, no analytics. This page contacts two hosts, and only when you press a button: <code>api.meshtastic.org</code> (which firmware is current) and <code>release.meshtastic.org</code> (the firmware itself, only for "Erase, flash &amp; configure"). Names, PIN, WiFi password and keys go over USB to your radio and nowhere else. The page's Content-Security-Policy enforces this.</p>
+  <p><b>Audit.</b> Source: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> · build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a> · <code>app.js</code> sha256 <code class="hash">{{APP_SHA256}}</code>. Rebuild with <code>npm ci &amp;&amp; npm run build</code> and compare.</p>
+  <p>Unofficial; not affiliated with Meshtastic LLC. Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0. Desktop Chrome or Edge required (Web Serial).</p>
+</footer>
+</div>
+</body>
+</html>
