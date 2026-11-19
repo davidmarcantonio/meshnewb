@@ -40,6 +40,7 @@ def scenario(name, fill, shot=None):
 def me(pg, ln="Test Node", sn="TST1", pin="246810"):
     pg.fill("#longname", ln); pg.fill("#shortname", sn); pg.fill("#pin", pin)
 def pick(pg, slug, state="CA"):
+    pg.click("[data-mode=community]")
     pg.select_option("#state", state); pg.select_option("#community", f"us/{state.lower()}/{slug}")
     pg.wait_for_function("() => !document.querySelector('#c-card').hidden || !document.querySelector('#c-listed').hidden")
 try:
@@ -59,7 +60,9 @@ try:
         me(pg); pick(pg,"san-diego-mesh")
         print("listed card:", pg.inner_text("#c-listed").replace("\n"," | "), "| link:", pg.get_attribute("#c-listed-link","href"), "| preset card hidden:", pg.is_hidden("#c-card"))
     scenario("Listed community (San Diego): link shown, no preset, run refused", e)
-    def f(pg): me(pg)
+    def f(pg): me(pg); pg.click("[data-mode=community]")
     scenario("No state picked: run refused", f)
+    def g(pg): me(pg)
+    scenario("Standard settings (default tab): region only, firmware defaults kept", g)
 finally:
     srv.terminate()
