@@ -125,7 +125,7 @@ function fillCommunities() {
   $("community-row").hidden = !list.length;
   if (!list.length) { renderCommunity(); return; }
   opt("community", "", "Choose a community…", true).disabled = true;
-  for (const [status, label] of [["published", "Published settings"], ["listed", "No published settings — ask the group"]]) {
+  for (const [status, label] of [["published", "Preset available"], ["listed", "No preset yet — ask the group"]]) {
     const group = list.filter((c) => c.status === status);
     if (!group.length) continue;
     const og = document.createElement("optgroup");
@@ -160,7 +160,7 @@ async function pickCommunity() {
 
 // uses.default applies to any radio; the picked use overrides it. Unpublished fields fall back to firmware defaults.
 function currentUse() {
-  const u = { ...(community.uses.default ?? {}), ...(community.uses[$("usecase").value] ?? {}) };
+  const u = { ...(community.uses?.default ?? {}), ...(community.uses?.[$("usecase").value] ?? {}) };
   return {
     role: u.roleNum ?? FW_DEFAULT.role, roleStated: u.roleNum !== undefined,
     hops: u.hopLimit ?? FW_DEFAULT.hopLimit, hopsStated: u.hopLimit !== undefined,
@@ -297,7 +297,7 @@ function readSettings() {
     if (community?.status === "published") r = communitySettings();
     else {
       problems.push(community
-        ? `${community.name} hasn't published its settings. Get them from the group (link above), then use "Set everything manually".`
+        ? `There is no preset for ${community.name} yet. Get its settings from the group (link above), then use "Set everything manually".`
         : 'Pick your state and community first, or use "Set everything manually".');
       return { s: p, problems };
     }
