@@ -6,7 +6,7 @@ import { TransportWebSerial } from "@meshtastic/transport-web-serial";
 import { create, fromBinary } from "@bufbuild/protobuf";
 import BOARDS from "../data/boards.json";
 import FIRMWARE from "../data/firmware.json";
-import { COMMUNITIES, UNPUBLISHED, USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL } from "./communities.js";
+import { USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL, FW_DEFAULT } from "./enums.js";
 
 const API = "https://api.meshtastic.org";
 const RELEASE = "https://release.meshtastic.org";
@@ -94,43 +94,141 @@ function setMode(m) {
   $("panel-manual").hidden = m !== "manual";
 }
 
-function currentCommunity() {
-  return COMMUNITIES.find((c) => c.id === $("community").value);
+// ---------- community presets ----------
+// Data files under presets/ on this same host (copied from the presets repo at build time). Nothing here is bundled
+// into app.js. `index` lists every community; a community's own file is fetched when it is picked.
+const SAME_ORIGIN = { referrerPolicy: "no-referrer", credentials: "omit" };
+let presetIndex = null;          // presets/index.json
+let community = null;            // the selected community's full file, or null
+const communityCache = new Map();
+
+async function loadPresetIndex() {
+  try {
+    const r = await fetch("presets/index.json", SAME_ORIGIN);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    presetIndex = await r.json();
+  } catch (e) {
+    $("c-status").textContent = `Couldn't load the community list (${e.message}). Reload the page, or use "Set everything manually".`;
+    $("c-status").hidden = false;
+    return;
+  }
+  const names = Object.entries(presetIndex.states).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  for (const [code, st] of names) opt("state", code, st.name);
+  $("state").disabled = false;
 }
 
-function communitySettings() {
-  const c = currentCommunity();
-  const u = c.uses[$("usecase").value];
+function fillCommunities() {
+  const sel = $("community");
+  sel.replaceChildren();
+  community = null;
+  const list = presetIndex ? presetIndex.communities.filter((c) => c.state === $("state").value) : [];
+  $("community-row").hidden = !list.length;
+  if (!list.length) { renderCommunity(); return; }
+  opt("community", "", "Choose a community…", true).disabled = true;
+  for (const [status, label] of [["published", "Published settings"], ["listed", "No published settings — ask the group"]]) {
+    const group = list.filter((c) => c.status === status);
+    if (!group.length) continue;
+    const og = document.createElement("optgroup");
+    og.label = label;
+    for (const c of group) { const o = document.createElement("option"); o.value = c.id; o.textContent = c.name; og.appendChild(o); }
+    sel.appendChild(og);
+  }
+  renderCommunity();
+}
+
+async function pickCommunity() {
+  const id = $("community").value;
+  const entry = presetIndex?.communities.find((c) => c.id === id);
+  community = null;
+  renderCommunity();
+  if (!entry) return;
+  try {
+    if (!communityCache.has(id)) {
+      const r = await fetch(`presets/${entry.path}`, SAME_ORIGIN);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      communityCache.set(id, await r.json());
+    }
+  } catch (e) {
+    $("c-status").textContent = `Couldn't load ${entry.name} (${e.message}).`;
+    $("c-status").hidden = false;
+    return;
+  }
+  if ($("community").value !== id) return; // user moved on while it loaded
+  community = communityCache.get(id);
+  renderCommunity();
+}
+
+// uses.default applies to any radio; the picked use overrides it. Unpublished fields fall back to firmware defaults.
+function currentUse() {
+  const u = { ...(community.uses.default ?? {}), ...(community.uses[$("usecase").value] ?? {}) };
   return {
-    source: c.name,
-    region: c.lora.region, usePreset: true, preset: c.lora.preset, slot: c.lora.slot,
-    hopLimit: u.hops, role: u.role, txPower: 0,
-    okToMqtt: $("c-okmqtt").checked, ignoreMqtt: undefined,
-    nodeInfoSecs: u.nodeInfoSecs, positionSecs: u.positionSecs, smart: u.smart, telemetrySecs: u.telemetrySecs,
-    channel: { kind: "public" },
+    role: u.roleNum ?? FW_DEFAULT.role, roleStated: u.roleNum !== undefined,
+    hops: u.hopLimit ?? FW_DEFAULT.hopLimit, hopsStated: u.hopLimit !== undefined,
+    nodeInfoSecs: u.nodeInfoSecs, positionSecs: u.positionSecs, smart: u.smartPosition, telemetrySecs: u.telemetrySecs,
   };
 }
 
+function communitySettings() {
+  const c = community, u = currentUse();
+  return {
+    source: c.name,
+    region: c.lora.regionNum, usePreset: true, preset: c.lora.modemPresetNum, slot: c.lora.frequencySlot ?? 0,
+    hopLimit: u.hops, role: u.role, txPower: 0,
+    okToMqtt: $("c-okmqtt").checked, ignoreMqtt: undefined,
+    nodeInfoSecs: u.nodeInfoSecs, positionSecs: u.positionSecs, smart: u.smart, telemetrySecs: u.telemetrySecs,
+    channel: community.primaryChannel && (community.primaryChannel.name || community.primaryChannel.psk !== "AQ==")
+      ? { kind: "manual", name: community.primaryChannel.name, psk: community.primaryChannel.psk }
+      : { kind: "public" },
+  };
+}
+
+function linkTo(el, url) {
+  el.href = /^https?:\/\//.test(url) ? url : "#";
+  const u = new URL(el.href, location.href);
+  el.textContent = u.host + (u.pathname === "/" ? "" : u.pathname);
+}
+
 function renderCommunity() {
-  const c = currentCommunity();
-  const u = c.uses[$("usecase").value];
-  $("c-okmqtt").checked = c.okToMqtt;
-  $("c-mqtt-advice").textContent = c.mqttAdvice || "";
+  const c = community;
+  const published = c?.status === "published", listed = c?.status === "listed";
+  $("c-status").hidden = true;
+  $("usecase-row").hidden = !published;
+  $("c-card").hidden = !published;
+  $("btn-customize").hidden = !published;
+  $("c-listed").hidden = !listed;
+  if (listed) {
+    $("c-listed-name").textContent = c.name;
+    $("c-listed-area").textContent = c.area;
+    linkTo($("c-listed-link"), c.contact.url);
+    $("c-listed-kind").textContent = c.contact.type === "website" ? "their site" : `their ${c.contact.type[0].toUpperCase()}${c.contact.type.slice(1)}`;
+    $("c-listed-checked").textContent = c.checked;
+    $("c-listed-notes").replaceChildren(...(c.notes ?? []).map((n) => { const li = document.createElement("li"); li.textContent = n; return li; }));
+    return;
+  }
+  if (!published) return;
+  const u = currentUse();
+  const ch = c.primaryChannel;
+  $("c-okmqtt").checked = !!c.mqtt?.okToMqtt;
+  $("c-mqtt-advice").textContent = c.mqtt?.advice || "";
   const rows = [
-    ["Region / preset", `${REGION_LABEL[c.lora.region]} · ${PRESET_LABEL[c.lora.preset]}`],
-    ["Frequency slot", c.lora.slot ? String(c.lora.slot) : "auto (0)"],
-    ["Primary channel", "Public default (blank name, key AQ==)"],
-    ["Role", ROLE_LABEL[u.role]],
-    ["Hop limit", String(u.hops)],
+    ["Region / preset", `${REGION_LABEL[c.lora.regionNum]} · ${PRESET_LABEL[c.lora.modemPresetNum] ?? c.lora.modemPreset}`],
+    ["Frequency slot", c.lora.frequencySlot ? String(c.lora.frequencySlot) : "auto (0), not published"],
+    ["Primary channel", !ch || (ch.name === "" && ch.psk === "AQ==") ? "Public default (blank name, key AQ==)" : `"${ch.name}"`],
+    ["Role", u.roleStated ? ROLE_LABEL[u.role] : `${ROLE_LABEL[u.role]} (firmware default)`],
+    ["Hop limit", u.hopsStated ? String(u.hops) : `${u.hops} (firmware default)`],
     ["NodeInfo every", u.nodeInfoSecs ? fmtSecs(u.nodeInfoSecs) : "firmware default"],
     ["Position every", u.positionSecs ? fmtSecs(u.positionSecs) : "firmware default"],
     ["Smart position", u.smart === undefined ? "firmware default" : u.smart ? "on" : "off"],
     ["Device telemetry every", u.telemetrySecs ? fmtSecs(u.telemetrySecs) : "firmware default"],
   ];
-  $("c-summary").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-  $("c-notes").innerHTML = c.notes.map((n) => `<li>${n}</li>`).join("");
-  $("c-source").href = c.source;
-  $("c-source").textContent = new URL(c.source).host + new URL(c.source).pathname;
+  if (c.minFirmware) rows.push(["Needs firmware", `${c.minFirmware} or newer`]);
+  $("c-summary").replaceChildren(...rows.map(([k, v]) => {
+    const tr = document.createElement("tr");
+    for (const t of [k, v]) { const td = document.createElement("td"); td.textContent = t; tr.appendChild(td); }
+    return tr;
+  }));
+  $("c-notes").replaceChildren(...(c.notes ?? []).map((n) => { const li = document.createElement("li"); li.textContent = n; return li; }));
+  linkTo($("c-source"), c.sources[0]);
   $("c-checked").textContent = c.checked;
   $("c-area").textContent = c.area;
 }
@@ -157,8 +255,10 @@ function customize() {
   $("posint").value = s.positionSecs ?? "";
   $("smart").value = s.smart === undefined ? "" : String(s.smart);
   $("telem").value = s.telemetrySecs ?? "";
-  $("churl").value = ""; $("chname").value = ""; $("chpsk").value = "";
-  $("m-basis").textContent = `Started from: ${currentCommunity().name} · ${USE_CASES[$("usecase").value]}`;
+  $("churl").value = "";
+  $("chname").value = s.channel.kind === "manual" ? s.channel.name : "";
+  $("chpsk").value = s.channel.kind === "manual" ? s.channel.psk : "";
+  $("m-basis").textContent = `Started from: ${community.name} · ${USE_CASES[$("usecase").value]}`;
   $("m-basis").hidden = false;
   syncPresetFields();
   setMode("manual");
@@ -194,7 +294,13 @@ function readSettings() {
 
   let r;
   if (mode === "community") {
-    r = communitySettings();
+    if (community?.status === "published") r = communitySettings();
+    else {
+      problems.push(community
+        ? `${community.name} hasn't published its settings. Get them from the group (link above), then use "Set everything manually".`
+        : 'Pick your state and community first, or use "Set everything manually".');
+      return { s: p, problems };
+    }
   } else {
     r = {
       source: "Manual",
@@ -503,12 +609,6 @@ function browserCheck() {
 // ---------- boot ----------
 window.addEventListener("DOMContentLoaded", () => {
   fillBoards();
-  for (const c of COMMUNITIES) opt("community", c.id, c.name, c.id === "baymesh");
-  const og = document.createElement("optgroup");
-  og.label = "No published settings — ask on their Discord/site";
-  for (const u of UNPUBLISHED) { const o = document.createElement("option"); o.disabled = true; o.textContent = u.name; og.appendChild(o); }
-  $("community").appendChild(og);
-  $("unpublished").innerHTML = UNPUBLISHED.map((u) => `<a href="${u.url}" target="_blank" rel="noopener noreferrer">${u.name}</a>`).join(" · ");
   for (const [k, v] of Object.entries(USE_CASES)) opt("usecase", k, v, k === "everyday");
 
   for (const [k, v] of Object.entries(C.Config_LoRaConfig_RegionCode)) if (isNaN(Number(k))) opt("region", v, k, k === "US");
@@ -516,7 +616,8 @@ window.addEventListener("DOMContentLoaded", () => {
   for (const [k, v] of Object.entries(ROLE)) opt("role", v, k, k === "CLIENT");
 
   document.querySelectorAll("[data-mode]").forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
-  $("community").onchange = renderCommunity;
+  $("state").onchange = fillCommunities;
+  $("community").onchange = pickCommunity;
   $("usecase").onchange = renderCommunity;
   $("btn-customize").onclick = customize;
   $("usepreset").onchange = syncPresetFields;
@@ -526,5 +627,6 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-config").onclick = () => run("config");
 
   renderCommunity(); syncPresetFields(); setMode("community");
+  loadPresetIndex();
   browserCheck();
 });

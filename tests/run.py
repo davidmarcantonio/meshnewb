@@ -39,18 +39,27 @@ def scenario(name, fill, shot=None):
         b.close()
 def me(pg, ln="Test Node", sn="TST1", pin="246810"):
     pg.fill("#longname", ln); pg.fill("#shortname", sn); pg.fill("#pin", pin)
+def pick(pg, slug, state="CA"):
+    pg.select_option("#state", state); pg.select_option("#community", f"us/{state.lower()}/{slug}")
+    pg.wait_for_function("() => !document.querySelector('#c-card').hidden || !document.querySelector('#c-listed').hidden")
 try:
-    def a(pg): me(pg); pg.select_option("#community","baymesh"); pg.select_option("#usecase","home")
+    def a(pg): me(pg); pick(pg,"baymesh"); pg.select_option("#usecase","home")
     scenario("BayMesh home base", a)
-    def b_(pg): me(pg); pg.select_option("#community","socal-lt"); pg.select_option("#usecase","everyday")
+    def b_(pg): me(pg); pick(pg,"socal-mesh-longturbo"); pg.select_option("#usecase","everyday")
     scenario("SoCal LongTurbo everyday", b_)
     def c(pg):
         pg.fill("#longname","Desert Rat"); pg.fill("#shortname","DR1"); pg.click("[data-conn=wifi]"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
-        pg.select_option("#community","hdmesh"); pg.select_option("#usecase","home"); pg.click("#btn-customize")
+        pick(pg,"high-desert-mesh"); pg.select_option("#usecase","home"); pg.click("#btn-customize")
         pg.fill("#txpower","22"); pg.fill("#hops","5"); pg.click("text=Channels (blank = public default)"); pg.fill("#churl", URL_CH)
         pg.click("text=Broadcast intervals")
     scenario("Customize HD Mesh + WiFi + channel URL", c)
-    def d(pg): pg.select_option("#community","cvm")
+    def d(pg): pick(pg,"central-valley-mesh")
     scenario("Validation (nothing personal filled in)", d)
+    def e(pg):
+        me(pg); pick(pg,"san-diego-mesh")
+        print("listed card:", pg.inner_text("#c-listed").replace("\n"," | "), "| link:", pg.get_attribute("#c-listed-link","href"), "| preset card hidden:", pg.is_hidden("#c-card"))
+    scenario("Listed community (San Diego): link shown, no preset, run refused", e)
+    def f(pg): me(pg)
+    scenario("No state picked: run refused", f)
 finally:
     srv.terminate()
