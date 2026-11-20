@@ -86,15 +86,22 @@ const vars = {
   PRESETS_REPO, PRESETS_COMMIT: presetsCommit, PRESETS_COMMIT_SHORT: presetsCommit.slice(0, 7), PRESETS_DATE: presetsDate,
   PRESETS_COUNT: String(index.communities.length),
 };
-let html = readFileSync("src/index.html", "utf8");
-html = html.replace(/\{\{(\w+)\}\}/g, (m, k) => { if (!(k in vars)) throw new Error(`unknown placeholder ${m}`); return vars[k]; });
-writeFileSync(`${out}/index.html`, html);
+// Three pages from two templates: the picker at /, and the app template rendered as /radio/ and /family/.
+const render = (file, extra) => readFileSync(file, "utf8").replace(/\{\{(\w+)\}\}/g, (m, k) => {
+  const v = { ...vars, ...extra }; if (!(k in v)) throw new Error(`unknown placeholder ${m}`); return v[k];
+});
+const PAGES = ["index.html", "radio/index.html", "family/index.html"];
+writeFileSync(`${out}/index.html`, render("src/home.html", {}));
+for (const page of ["radio", "family"]) {
+  mkdirSync(`${out}/${page}`, { recursive: true });
+  writeFileSync(`${out}/${page}/index.html`, render("src/index.html", { PAGE: page, ROOT: "../" }));
+}
 writeFileSync(`${out}/.nojekyll`, "");
 
 const manifest = {
   commit, repo, files: {},
   presets: { repo: PRESETS_REPO, commit: presetsCommit, date: presetsDate, count: index.communities.length, files: presetFiles },
 };
-for (const f of ["index.html", "app.js", "app.css"]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
+for (const f of [...PAGES, "app.js", "app.css"]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
 writeFileSync(`${out}/build.json`, JSON.stringify(manifest, null, 2) + "\n");
 console.log(`app.js ${js.length} bytes  sha256 ${vars.APP_SHA256}\ncommit ${commit}\npresets ${index.communities.length} communities, ${PRESETS_REPO} @ ${presetsCommit} (${presetsDate})`);

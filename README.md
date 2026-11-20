@@ -2,7 +2,13 @@
 
 Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Start with the standard settings the firmware ships with, pick your state and community to get your local mesh's published settings, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
 
-Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
+Live at https://mesh.marcantonio.me:
+
+- `/` picks what to do. It runs no scripts.
+- `/radio/` flashes and configures one radio.
+- `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page offers a one-time QR code to print when the channel is created, and never shows the key again (no link is displayed or accepted). A radio that already has the channel can be read to set up another.
+
+All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
 ## Firmware: "Beta" is the one you want
 
@@ -10,6 +16,7 @@ Meshtastic calls its recommended release "Beta". Despite the name, that is the b
 
 - **Detect my board** asks the plugged-in radio what it is and which firmware it runs. It works on any board that already has Meshtastic; a blank ESP32 can only be narrowed to "ESP32".
 - **Out-of-date firmware stops "Configure only" before anything is changed.** You can update first or configure anyway. If a community preset needs a newer firmware than the radio has, updating is the only option.
+- **Factory reset** for a second-hand radio: detects the radio, asks, then counts down 10 seconds inside the confirm button with Cancel beside it. Wipes settings, channels, keys, node list and Bluetooth pairings; the firmware stays.
 - **nRF52 boards** (T-Echo, RAK4631 and others) update by drag-and-drop; the page shows the steps and then configures them.
 
 ## Before you start

@@ -18,7 +18,7 @@ def scenario(name, fill, shot=None, opts=None, after=None):
         pg.route("https://api.meshtastic.org/resource/deviceHardware", lambda r: r.fulfill(json=HW))
         if opts: pg.add_init_script("window.__fakeOpts = " + json.dumps(opts))
         pg.add_init_script(fake)
-        pg.goto("http://localhost:8765/index.html"); pg.wait_for_timeout(600)
+        pg.goto("http://localhost:8765/radio/index.html"); pg.wait_for_timeout(600)
         load_reqs = list(reqs)
         fill(pg)
         if shot: pg.screenshot(path=shot, full_page=True)
