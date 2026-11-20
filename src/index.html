@@ -17,6 +17,7 @@
   <h1>MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
   <p>Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
   <div class="fw">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
+  <div class="hint">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</div>
 </header>
 
 <section class="panel prereq privacy-teaser">
@@ -182,13 +183,26 @@
 
     <section class="panel">
       <h2><span><span class="n">03</span>Hardware</span></h2>
+      <div class="buttons"><button type="button" class="act small quiet" id="btn-detect">Detect my board</button></div>
+      <div class="hint" id="detect-result">Plug the board in and press Detect. Your browser asks which USB device to use; the page then asks the board what it is. Nothing is sent anywhere.</div>
       <label for="board">Board (ESP32 family)</label>
       <select id="board"></select>
       <div class="row">
         <div><label for="baud">Flash baud</label><select id="baud"><option>115200</option><option selected>460800</option><option>921600</option></select></div>
         <div><label for="localbin">…or a local .factory.bin</label><input id="localbin" type="file" accept=".bin"></div>
       </div>
-      <div class="hint">nRF52 boards (T-Echo, RAK4631): drag the UF2 onto the board's USB drive, then use "Configure only".</div>
+      <div class="hint">nRF52 boards (T-Echo, RAK4631 and others) aren't in this list: they update by drag-and-drop, then use "Configure only". Press Detect and the steps appear here.</div>
+      <div class="card" id="nrf-steps" hidden>
+        <p><b>Updating an nRF52 board (drag-and-drop)</b></p>
+        <ol>
+          <li>Download the current Beta file for your board from <a href="https://flasher.meshtastic.org" target="_blank" rel="noopener noreferrer">flasher.meshtastic.org</a>. It is named like <code id="nrf-file"></code>.</li>
+          <li>Plug the board straight into the computer with a data cable (not through a hub). On a Mac laptop, click Allow if asked to allow the accessory.</li>
+          <li>Double-press the board's Reset button quickly. A USB drive appears (on a T-Echo it is called TECHOBOOT).</li>
+          <li>Drag the file onto that drive. If Finder shows an error, use Terminal instead: <code id="nrf-cp"></code></li>
+          <li>The drive disappears and the board restarts. A "not ejected properly" warning at this point is normal.</li>
+          <li>Come back here and press "Configure only".</li>
+        </ol>
+      </div>
     </section>
 
     <section class="panel">
@@ -199,6 +213,15 @@
       <div class="buttons">
         <button class="act primary" id="btn-full">Erase, flash &amp; configure</button>
         <button class="act quiet" id="btn-config">Configure only (already flashed)</button>
+      </div>
+      <div class="card" id="fw-gate" hidden>
+        <p><b>Firmware is out of date</b></p>
+        <p id="fw-gate-text"></p>
+        <p class="hint">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</p>
+        <div class="buttons">
+          <button type="button" class="act primary small" id="btn-fw-update">Erase, update &amp; configure</button>
+          <button type="button" class="act quiet small" id="btn-fw-anyway">Configure anyway</button>
+        </div>
       </div>
       <div class="callout">"Erase" means everything on the radio: nodes, messages, keys. When the browser asks, pick the port that appeared when you plugged in (CP210x, USB JTAG or usbmodem).</div>
       <p><progress id="progress" max="100" value="0"></progress> <span id="progtext" class="hint"></span></p>

@@ -19,7 +19,7 @@ window.__fakeNode = node;
 const frame = (fr) => { const b = toBinary(M.FromRadioSchema, create(M.FromRadioSchema, fr)); return new Uint8Array([0x94, 0xc3, b.length >> 8, b.length & 255, ...b]); };
 class FakePort {
   constructor() { this.readable = null; this.writable = null; this.ondisconnect = null; }
-  getInfo() { return { usbVendorId: 0x10c4, usbProductId: 0xea60 }; }
+  getInfo() { return window.__fakeOpts?.usb ?? { usbVendorId: 0x10c4, usbProductId: 0xea60 }; }
   async open() {
     let ctl; this.readable = new ReadableStream({ start: (c) => (ctl = c) });
     const push = (fr) => ctl.enqueue(frame(fr));
@@ -43,8 +43,8 @@ function handle(msg, push) {
   const v = msg.payloadVariant;
   if (v.case === "wantConfigId") {
     setTimeout(() => {
-      push({ payloadVariant: { case: "myInfo", value: { myNodeNum: NUM } } });
-      push({ payloadVariant: { case: "metadata", value: { firmwareVersion: "2.7.26.54e0d8d", hasWifi: true, hasBluetooth: true } } });
+      push({ payloadVariant: { case: "myInfo", value: { myNodeNum: NUM, pioEnv: window.__fakeOpts?.pioEnv ?? "heltec-v3" } } });
+      push({ payloadVariant: { case: "metadata", value: { firmwareVersion: window.__fakeOpts?.fw ?? "2.7.26.54e0d8d", hasWifi: window.__fakeOpts?.hasWifi ?? true, hasBluetooth: true } } });
       push({ payloadVariant: { case: "nodeInfo", value: { num: NUM, user: node.user } } });
       for (const [k, val] of Object.entries(node.config)) push({ payloadVariant: { case: "config", value: { payloadVariant: { case: k, value: val } } } });
       for (const [k, val] of Object.entries(node.module)) push({ payloadVariant: { case: "moduleConfig", value: { payloadVariant: { case: k, value: val } } } });
