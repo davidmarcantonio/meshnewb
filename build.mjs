@@ -82,6 +82,7 @@ const fw = JSON.parse(readFileSync("data/firmware.json", "utf8"));
 
 const vars = {
   APP_SRI: sri(js), CSS_SRI: sri(css), APP_SHA256: sha256(js),
+  VERSION: JSON.parse(readFileSync("package.json", "utf8")).version,
   COMMIT: commit, COMMIT_SHORT: commit.slice(0, 7), REPO: repo, FW_TESTED: fw.tested,
   PRESETS_REPO, PRESETS_COMMIT: presetsCommit, PRESETS_COMMIT_SHORT: presetsCommit.slice(0, 7), PRESETS_DATE: presetsDate,
   PRESETS_COUNT: String(index.communities.length),
@@ -99,6 +100,7 @@ for (const page of ["radio", "family"]) {
 writeFileSync(`${out}/.nojekyll`, "");
 
 const manifest = {
+  version: vars.VERSION,
   commit, repo, files: {},
   presets: { repo: PRESETS_REPO, commit: presetsCommit, date: presetsDate, count: index.communities.length, files: presetFiles },
 };
