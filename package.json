@@ -1,6 +1,6 @@
 {
   "name": "meshnewb",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "Flash and configure a Meshtastic node from the browser, with US community presets.",
   "scripts": {
     "build": "node build.mjs",
