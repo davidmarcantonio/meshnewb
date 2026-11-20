@@ -40,7 +40,7 @@ class FakePort {
         if (buf.length < i + 4 + len) return;
         const msg = fromBinary(M.ToRadioSchema, new Uint8Array(buf.slice(i + 4, i + 4 + len)));
         buf = buf.slice(i + 4 + len);
-        if (!node.rebooting) handle(msg, push);
+        if (!node.rebooting && !window.__fakeOpts?.mute) handle(msg, push);
       }
     }});
   }
@@ -49,6 +49,9 @@ class FakePort {
 function handle(msg, push) {
   const v = msg.payloadVariant;
   if (v.case === "wantConfigId") {
+    node.lastNonce = v.value;
+    // A radio that has heard many others sends them all unless asked for config only (69420).
+    const others = window.__fakeOpts?.bigNodeDb && v.value !== 69420 ? 300 : 0;
     setTimeout(() => {
       push({ payloadVariant: { case: "myInfo", value: { myNodeNum: NUM, pioEnv: window.__fakeOpts?.pioEnv ?? "heltec-v3" } } });
       push({ payloadVariant: { case: "metadata", value: { firmwareVersion: window.__fakeOpts?.fw ?? "2.7.26.54e0d8d", hasWifi: window.__fakeOpts?.hasWifi ?? true, hasBluetooth: true } } });
@@ -56,7 +59,8 @@ function handle(msg, push) {
       for (const [k, val] of Object.entries(node.config)) push({ payloadVariant: { case: "config", value: { payloadVariant: { case: k, value: val } } } });
       for (const [k, val] of Object.entries(node.module)) push({ payloadVariant: { case: "moduleConfig", value: { payloadVariant: { case: k, value: val } } } });
       for (const ch of Object.values(node.channels)) push({ payloadVariant: { case: "channel", value: ch } });
-      push({ payloadVariant: { case: "configCompleteId", value: v.value } });
+      for (let i = 0; i < others; i++) push({ payloadVariant: { case: "nodeInfo", value: { num: 1000 + i, user: { longName: "Other " + i, shortName: "O" + (i % 100) } } } });
+      setTimeout(() => push({ payloadVariant: { case: "configCompleteId", value: v.value } }), others ? 45000 : 0);
     }, 50);
   } else if (v.case === "packet") {
     const pkt = v.value, d = pkt.payloadVariant.value;

@@ -504,8 +504,19 @@ async function connectMesh(timeoutMs = 30000) {
     port = granted.length === 1 ? granted[0] : await pickPort();
   }
   const transport = await TransportWebSerial.createFromPort(port, 115200);
-  const dev = new MeshDevice(transport);
+  // Ask for the radio's own settings only (firmware's SPECIAL_NONCE_ONLY_CONFIG). A normal handshake also dumps
+  // every other radio it has heard, which on a busy mesh can run past the timeout. Firmware that predates the
+  // special value treats it as an ordinary id and sends everything, so this is safe either way.
+  const ONLY_CONFIG = 69420;
+  const dev = new MeshDevice(transport, ONLY_CONFIG);
   const st = { config: {}, module: {}, channels: {}, myNodeNum: null, users: {}, metadata: null };
+  const seen = { myInfo: 0, metadata: 0, config: 0, module: 0, channels: 0, nodes: 0 };
+  dev.events.onMyNodeInfo.subscribe(() => seen.myInfo++);
+  dev.events.onDeviceMetadataPacket.subscribe(() => seen.metadata++);
+  dev.events.onConfigPacket.subscribe(() => seen.config++);
+  dev.events.onModuleConfigPacket.subscribe(() => seen.module++);
+  dev.events.onChannelPacket.subscribe(() => seen.channels++);
+  dev.events.onNodeInfoPacket.subscribe(() => seen.nodes++);
   dev.events.onConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.config[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onModuleConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.module[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onChannelPacket.subscribe((ch) => (st.channels[ch.index] = ch));
@@ -515,21 +526,28 @@ async function connectMesh(timeoutMs = 30000) {
   const configured = new Promise((res) => dev.events.onDeviceStatus.subscribe((x) => x === 7 && res()));
   dev.configure().catch(() => {});
   dev.setHeartbeatInterval(30000);
-  const timedOut = await Promise.race([configured.then(() => false), sleep(timeoutMs).then(() => true)]);
+  // Give up early if the radio hasn't said a single thing after 12 seconds: waiting longer won't help.
+  const quiet = sleep(Math.min(12000, timeoutMs)).then(() => (Object.values(seen).some(Boolean) ? sleep(timeoutMs) : null)).then(() => true);
+  const timedOut = await Promise.race([configured.then(() => false), sleep(timeoutMs).then(() => true), quiet]);
   if (timedOut) {
     // Let go of the port properly. Without this the streams stay locked, close() fails, and every retry
     // dies with "The port is already open".
     try { await withTimeout(dev.disconnect(), 3000, "disconnect"); } catch {}
     try { await withTimeout(transport.disconnect(), 3000, "disconnect"); } catch {}
     try { await port.close(); } catch {}
-    throw new Error("Node didn't finish the config handshake in time");
+    const total = Object.values(seen).reduce((a, b) => a + b, 0);
+    const e = new Error(total === 0
+      ? "The radio opened the USB port but sent nothing back"
+      : `The radio started answering but didn't finish in time (got: ${seen.myInfo ? "identity" : "no identity"}, ${seen.config + seen.module} settings sections, ${seen.channels} channels, ${seen.nodes} radio records)`);
+    e.silent = total === 0;
+    throw e;
   }
   return { dev, st };
 }
 async function connectWithRetry(tries = 6, perTryMs = 30000) {
   for (let i = 1; i <= tries; i++) {
     try { log(`Connecting to Meshtastic API (attempt ${i}/${tries})…`); await refreshPort(); return await connectMesh(perTryMs); }
-    catch (e) { warn(e.message); try { await port?.close(); } catch {} if (i === tries) throw e; await sleep(5000); }
+    catch (e) { warn(e.message); try { await port?.close(); } catch {} if (i === tries || (e.silent && i >= 2 && perTryMs >= 30000)) throw e; await sleep(5000); }
   }
 }
 
@@ -728,8 +746,9 @@ async function run(kind) {
     document.querySelectorAll('[data-state="active"]').forEach((el) => (el.dataset.state = "fail"));
     if (e.name === "NotFoundError" || /No port selected/i.test(e.message)) {
       warn("No board picked. If your board wasn't in the list: try a different USB cable (charge-only cables are the #1 cause), plug directly into the computer, install the CP210x/CH9102 driver, or hold BOOT while plugging in.");
-    } else if (/port|open|lock/i.test(e.message)) warn("Close any other tab/app using the serial port (Meshtastic desktop app, serial monitor, Arduino IDE).");
-    else if (/timed out|handshake|sync|connect/i.test(e.message)) warn("The board stopped answering. Try another cable or USB port, or hold BOOT while plugging in and press the button again.");
+    } else if (!e.silent && /port|open|lock/i.test(e.message)) warn("Close any other tab/app using the serial port (Meshtastic desktop app, serial monitor, Arduino IDE).");
+    else if (e.silent) warn("Nothing came back from the radio. Most often another program has it: close the Meshtastic desktop or web app and any other flasher tab. Otherwise unplug the radio, wait 10 seconds, plug it back in and try again. If it still says nothing, the firmware may not be running: reinstall it.");
+    else if (/timed out|handshake|sync|connect|didn't finish/i.test(e.message)) warn("The board stopped answering part-way. Try another cable or USB port, then press the button again.");
   } finally { busy(false); }
 }
 
