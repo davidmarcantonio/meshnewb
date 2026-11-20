@@ -7,6 +7,7 @@ import qrcode from "qrcode-generator";
 import { suggestName } from "./names.js";
 import BOARDS from "../data/boards.json";
 import FIRMWARE from "../data/firmware.json";
+import { summarize, verNums, olderThan, shortVer } from "./summary.js";
 import { USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL, FW_DEFAULT } from "./enums.js";
 
 const API = "https://api.meshtastic.org";
@@ -392,9 +393,6 @@ let detected = null;   // { family, pioEnv, name, fw } from the last detection o
 let fwOverride = false; // user chose "Configure anyway" on out-of-date firmware
 
 const usbKey = (p) => { const i = p?.getInfo?.() ?? {}; const h = (n) => (n ?? 0).toString(16).padStart(4, "0"); return { vid: i.usbVendorId, key: `${h(i.usbVendorId)}:${h(i.usbProductId)}` }; };
-const verNums = (v) => (String(v ?? "").match(/\d+/g) ?? []).slice(0, 3).map(Number);
-const olderThan = (a, b) => { const x = verNums(a), y = verNums(b); for (let i = 0; i < 3; i++) { if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); } return false; };
-const shortVer = (v) => verNums(v).join(".");
 
 function identify(st) {
   const { vid, key } = usbKey(port);
