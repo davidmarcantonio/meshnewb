@@ -9,7 +9,7 @@ Live at https://mesh.marcantonio.me:
 - `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page offers a one-time QR code to print when the channel is created, and never shows the key again (no link is displayed or accepted). A radio that already has the channel can be read to set up another.
 - `/check/` reads a plugged-in radio and shows how it is set: board, firmware (and whether it is out of date), region and preset, channels, Bluetooth, WiFi, MQTT. It is read-only and sends the radio no settings. Channel keys, WiFi passwords, Bluetooth PINs and admin keys are never displayed, only whether one is set.
 
-All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
+All four pages are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
 New to Meshtastic? The plain-English guide that goes with this tool is [Meshtastic for Emergencies: Text Your Family When the Phones Go Down](https://marcantonio.me/emergency-texting/). Built by [David Marcantonio](https://marcantonio.me).
 
@@ -45,7 +45,7 @@ Meshtastic calls its recommended release "Beta". Despite the name, that is the b
 
 1. **Source:** this repo. All of the app's own code is in `src/`. The board list and tested firmware version are in `data/`.
 2. **Build:** GitHub Actions builds from a tagged commit (`.github/workflows/pages.yml`, actions pinned to commit SHAs) and deploys to GitHub Pages.
-3. **Provenance:** each deploy publishes a signed build attestation for `index.html`, `app.js`, `app.css`, `build.json` and `presets/index.json`. `build.json` names the app commit, the presets commit and date, and the sha256 of every preset file. Check one with:
+3. **Provenance:** each deploy publishes a signed build attestation for each page's `index.html`, `app.js`, `app.css`, `build.json` and `presets/index.json`. `build.json` names the app commit, the presets commit and date, and the sha256 of every preset file. Check one with:
    ```sh
    curl -sO https://<pages-host>/app.js
    gh attestation verify app.js --repo davidmarcantonio/meshnewb

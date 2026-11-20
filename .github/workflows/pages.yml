@@ -96,6 +96,7 @@ jobs:
             dist/index.html
             dist/radio/index.html
             dist/family/index.html
+            dist/check/index.html
             dist/app.js
             dist/app.css
             dist/build.json

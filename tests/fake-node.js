@@ -15,7 +15,7 @@ const node = {
   module: { ...(O.mqtt ? { mqtt: create(Protobuf.ModuleConfig.ModuleConfig_MQTTConfigSchema, O.mqtt) } : {}), telemetry: create(Protobuf.ModuleConfig.ModuleConfig_TelemetryConfigSchema, { deviceUpdateInterval: 1800, environmentUpdateInterval: 1800 }) },
   // Extra channels for tests: [{ index, role, name, psk: [bytes], uplinkEnabled, positionPrecision }]
   channels: Object.fromEntries([{ index: 0, role: 1, psk: [1] }, ...(O.channels ?? [])].map((c) => [c.index, create(Protobuf.Channel.ChannelSchema, { index: c.index, role: c.role, settings: { name: c.name ?? "", psk: new Uint8Array(c.psk ?? []), uplinkEnabled: !!c.uplinkEnabled, ...(c.positionPrecision != null ? { moduleSettings: { positionPrecision: c.positionPrecision } } : {}) } })])),
-  commits: 0, adminLog: [], rebootCount: 7,
+  commits: 0, adminLog: [], rebootCount: 7, handshakes: 0,
 };
 window.__fakeNode = node;
 const frame = (fr) => { const b = toBinary(M.FromRadioSchema, create(M.FromRadioSchema, fr)); return new Uint8Array([0x94, 0xc3, b.length >> 8, b.length & 255, ...b]); };
@@ -76,7 +76,9 @@ function handle(msg, push) {
       for (const [k, val] of Object.entries(node.module)) push({ payloadVariant: { case: "moduleConfig", value: { payloadVariant: { case: k, value: val } } } });
       for (const ch of Object.values(node.channels)) push({ payloadVariant: { case: "channel", value: ch } });
       for (let i = 0; i < others; i++) push({ payloadVariant: { case: "nodeInfo", value: { num: 1000 + i, user: { longName: "Other " + i, shortName: "O" + (i % 100) } } } });
-      setTimeout(() => push({ payloadVariant: { case: "configCompleteId", value: v.value } }), others ? 45000 : 0);
+      // stall: everything arrives except the "done" marker. slowFirstMs: the first handshake takes that long, later ones are quick.
+      const slow = O.slowFirstMs && !node.handshakes++ ? O.slowFirstMs : 0;
+      if (!O.stall) setTimeout(() => push({ payloadVariant: { case: "configCompleteId", value: v.value } }), others ? 45000 : slow);
     }, 50);
   } else if (v.case === "packet") {
     const pkt = v.value, d = pkt.payloadVariant.value;

@@ -58,8 +58,8 @@ test("no secret reaches the output", () => {
   const r = sum((st) => { st.channels[1] = chan(1, 2, "SmithFam", PRIVATE32); st.config.security.adminKey = [new Uint8Array(32).fill(9)]; });
   const out = JSON.stringify(r);
   for (const secret of ["123456", "hunter2secret", Buffer.from(PRIVATE32).toString("base64"), Buffer.from(new Uint8Array(32).fill(9)).toString("base64"), "7,7,7", "9,9,9"]) assert.ok(!out.includes(secret), secret);
-  assert.equal(row(r, "Bluetooth", "PIN"), "Fixed PIN set");
   assert.equal(row(r, "WiFi", "Network"), "HomeNet");
+  assert.equal(row(sum((st) => (st.config.network.wifiEnabled = false)), "Bluetooth", "PIN"), "Fixed PIN set");
 });
 test("channel keys are classified, never shown", () => {
   const kinds = [[new Uint8Array([]), "no encryption"], [new Uint8Array([0]), "no encryption"], [new Uint8Array([1]), "default key"], [DEFAULT16, "default key"], [new Uint8Array(16).fill(3), "private key"], [PRIVATE32, "private key"]];
@@ -112,4 +112,19 @@ test("a nearly empty state does not throw", () => {
   assert.equal(row(r, "Hardware", "Board"), "Unknown");
   assert.equal(row(r, "Firmware", "Installed"), "Unknown");
   assert.deepEqual(r.channels, []);
+});
+test("bluetooth reads as off on an ESP32 while WiFi is on, because the firmware turns it off", () => {
+  assert.equal(row(sum(), "Bluetooth", "Bluetooth"), "Off while WiFi is on");
+  const nrf = summarize(base(), { ...OPTS, family: "nrf52" });
+  assert.equal(row(nrf, "Bluetooth", "Bluetooth"), "On");
+  assert.equal(row(sum((st) => (st.config.network.wifiEnabled = false)), "Bluetooth", "Bluetooth"), "On");
+});
+test("a board without bluetooth says so", () => {
+  assert.equal(row(sum((st) => (st.metadata.hasBluetooth = false)), "Bluetooth", "Bluetooth"), "Not on this board");
+});
+test("when the current version could not be looked up, the status says what it compared against", () => {
+  const r = summarize(base(), { ...OPTS, fwChecked: false });
+  assert.match(row(r, "Firmware", "Status"), /couldn't check/i);
+  assert.match(row(r, "Firmware", "Status"), /2\.7\.26/);
+  assert.equal(row(sum(), "Firmware", "Status"), "Up to date");
 });

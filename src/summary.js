@@ -23,7 +23,7 @@ function keyKind(psk) {
 }
 const locationKind = (p) => (!p ? "not shared" : p >= 32 ? "exact" : "approximate");
 
-export function summarize(st, { boardName, family, currentFw }) {
+export function summarize(st, { boardName, family, currentFw, fwChecked = true }) {
   const cfg = st.config ?? {}, mod = st.module ?? {};
   const lora = cfg.lora, bt = cfg.bluetooth, net = cfg.network, sec = cfg.security, mqtt = mod.mqtt;
   const me = st.users?.[st.myNodeNum];
@@ -58,7 +58,10 @@ export function summarize(st, { boardName, family, currentFw }) {
     : !net ? [["WiFi", "Unknown"]]
     : net.wifiEnabled ? [["WiFi", "On"], ["Network", net.wifiSsid || "(none entered)"], ["Password", net.wifiPsk ? "Set" : "None"]]
     : [["WiFi", "Off"]];
-  const btRows = !bt ? [["Bluetooth", "Unknown"]]
+  // ESP32 firmware switches Bluetooth off whenever WiFi is on, whatever the Bluetooth setting says.
+  const btRows = st.metadata?.hasBluetooth === false ? [["Bluetooth", "Not on this board"]]
+    : !bt ? [["Bluetooth", "Unknown"]]
+    : bt.enabled && family === "esp32" && net?.wifiEnabled ? [["Bluetooth", "Off while WiFi is on"]]
     : bt.enabled ? [["Bluetooth", "On"], ["Pairing", PAIRING[bt.mode ?? 0] ?? "Unknown"], ...(bt.mode === 1 ? [["PIN", "Fixed PIN set"]] : [])]
     : [["Bluetooth", "Off"]];
 
@@ -70,7 +73,8 @@ export function summarize(st, { boardName, family, currentFw }) {
     ] },
     { title: "Firmware", rows: [
       ["Installed", fw ? shortVer(fw) : "Unknown"],
-      ["Status", !fw ? "Unknown" : old ? `Out of date; current is ${shortVer(currentFw)}` : "Up to date"],
+      ["Status", !fw ? "Unknown" : old ? `Out of date; current is ${shortVer(currentFw)}`
+        : fwChecked ? "Up to date" : `Not older than ${shortVer(currentFw)}, the version this site was tested with (couldn't check Meshtastic for a newer one)`],
     ] },
     { title: "Radio", rows: [
       ["Region", !lora ? "Unknown" : regionSet ? (Protobuf.Config.Config_LoRaConfig_RegionCode[lora.region] ?? `#${lora.region}`) : "Not set"],

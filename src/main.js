@@ -1105,8 +1105,20 @@ async function checkRun() {
     }
     status.textContent = "Reading the radio…";
     let st;
-    try { ({ dev, st } = await connectMesh(12000)); }
-    catch (e) {
+    try {
+      try { ({ dev, st } = await connectMesh(12000)); }
+      catch (e) {
+        // Talking but slow (old firmware sends its whole list of other radios): that is a working radio. Wait longer.
+        if (e.silent) throw e;
+        status.textContent = "The radio is answering, but slowly. Giving it more time…";
+        ({ dev, st } = await connectMesh(30000));
+      }
+    } catch (e) {
+      if (!e.silent) {
+        status.textContent = "Meshtastic is running on this radio, but it didn't finish sending its settings. Unplug it, plug it back in, wait about 20 seconds and press the button again. "
+          + "If that keeps happening, close anything else that may be using the radio (another tab, the Meshtastic app on this computer).";
+        return;
+      }
       const d = identify(null);
       const what = d.family === "nrf52" ? `${d.name ?? "an nRF52 board"}` : d.family === "esp32" ? "an ESP32 board" : "a USB device";
       status.textContent = `There is nothing to read: this looks like ${what}, but Meshtastic didn't answer. It may be blank, still starting up, or in use by another app or tab. `
@@ -1114,7 +1126,8 @@ async function checkRun() {
       return;
     }
     const d = identify(st);
-    const summary = summarize(st, { boardName: d.name, family: d.family, currentFw: await resolveFirmware() });
+    const current = await resolveFirmware();
+    const summary = summarize(st, { boardName: d.name, family: d.family, currentFw: current, fwChecked: currentFw !== null });
     checkRender(summary);
     status.textContent = `Read at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Nothing was changed.`;
   } catch (e) {
