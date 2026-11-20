@@ -702,6 +702,9 @@ function famRender() {
   $("fam-ready").hidden = !fam;
   if (!fam) return;
   $("fam-ready-name").textContent = fam.name;
+  // The QR is offered only for a channel created in this tab. One read from a radio never puts the key on screen.
+  $("fam-save").hidden = !fam.fresh;
+  if (!fam.fresh) { const cv = $("fam-qr"); cv.width = cv.height = 1; $("fam-key").textContent = ""; $("fam-key-name").textContent = ""; return; }
   const link = famLink();
   $("fam-key-name").textContent = fam.name;
   $("fam-key").textContent = bytesToB64(fam.psk);
@@ -724,9 +727,9 @@ function famUse(list, from) {
 function famNew() {
   const name = $("fam-name").value.trim();
   if (!name || new TextEncoder().encode(name).length > 11) { $("fam-status").textContent = "Give the channel a name of 1 to 11 characters."; return; }
-  fam = { name, psk: crypto.getRandomValues(new Uint8Array(32)) };
+  fam = { name, psk: crypto.getRandomValues(new Uint8Array(32)), fresh: true };
   $("fam-pick-row").hidden = true;
-  $("fam-status").textContent = `Created "${name}" with a new random key. Print the QR code below before closing this tab, or keep one radio that has the channel.`;
+  $("fam-status").textContent = `Created "${name}" with a new random key. If phones need to join, print the one-time QR code below before closing this tab.`;
   famRender();
 }
 async function famRead() {
@@ -740,10 +743,6 @@ async function famRead() {
     famUse(list, "on that radio");
   } catch (e) { $("fam-status").textContent = `Couldn't read the radio: ${e.message}`; }
   finally { busy(false); }
-}
-function famPaste() {
-  try { famUse(parseChannelUrl($("fam-url").value.trim()).settings.map((c) => ({ name: c.name, psk: c.psk })), "in that link"); }
-  catch (e) { $("fam-status").textContent = `That link didn't parse: ${e.message}`; }
 }
 async function famPush() {
   if (!fam) { err("Create or load the channel first (step 01)."); return; }
@@ -789,11 +788,10 @@ async function famPush() {
 function famBoot() {
   document.querySelectorAll("[data-fam]").forEach((b) => (b.onclick = () => {
     document.querySelectorAll("[data-fam]").forEach((x) => x.classList.toggle("on", x === b));
-    for (const k of ["new", "read", "paste"]) $(`fam-${k}`).hidden = k !== b.dataset.fam;
+    for (const k of ["new", "read"]) $(`fam-${k}`).hidden = k !== b.dataset.fam;
   }));
   $("btn-fam-new").onclick = famNew;
   $("btn-fam-read").onclick = famRead;
-  $("btn-fam-paste").onclick = famPaste;
   $("btn-fam-push").onclick = famPush;
   $("btn-fam-print").onclick = () => window.print();
   $("fam-pick").onchange = () => { const c = famChoices[Number($("fam-pick").value)]; fam = { name: c.name, psk: c.psk }; famRender(); };

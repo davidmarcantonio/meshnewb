@@ -50,7 +50,7 @@
     <section class="panel" data-only="family">
       <h2><span><span class="n">01</span>The channel</span><small>do this once</small></h2>
       <p class="hint">Each radio should already be set up for your area (<a href="{{ROOT}}radio/">Set up a radio</a>). This page adds a private channel beside the public one, so the radio stays on the local mesh and can still relay through neighbours.</p>
-      <div class="tabs"><button type="button" data-fam="new" class="on">Create a new channel</button><button type="button" data-fam="read">Copy from a radio that has it</button><button type="button" data-fam="paste">I have a channel link</button></div>
+      <div class="tabs"><button type="button" data-fam="new" class="on">Create a new channel</button><button type="button" data-fam="read">Copy from a radio that has it</button></div>
       <div id="fam-new">
         <label for="fam-name">Channel name <span class="req">*</span></label>
         <input id="fam-name" maxlength="11" placeholder="SmithFam" autocomplete="off">
@@ -61,11 +61,6 @@
         <p class="hint">Plug in a radio that already has your channel. The page reads the channel from it; nothing on that radio is changed.</p>
         <div class="buttons"><button type="button" class="act small" id="btn-fam-read">Read channels from this radio</button></div>
       </div>
-      <div id="fam-paste" hidden>
-        <label for="fam-url">Channel link</label>
-        <input id="fam-url" placeholder="https://meshtastic.org/e/#…" autocomplete="off">
-        <div class="buttons"><button type="button" class="act small" id="btn-fam-paste">Use this link</button></div>
-      </div>
       <div id="fam-pick-row" hidden>
         <label for="fam-pick">Which channel?</label>
         <select id="fam-pick"></select>
@@ -75,8 +70,9 @@
         <p>Channel <b id="fam-ready-name"></b> is ready to put on your radios.</p>
         <label class="inline"><input type="checkbox" id="fam-pos" checked> Share each radio's location on this channel</label>
         <div class="hint">On: people on this channel can see where each radio is. It does not change what the public channel shows.</div>
-        <details class="mini"><summary>Save this channel (QR code to print)</summary>
-          <p>This code is the channel's key. Keep the printout somewhere safe, like a house key: anyone who scans it can read the channel. Don't photograph it into a chat or email. It is how a phone, or a radio you buy later, joins: scan it with the Meshtastic app.</p>
+        <details class="mini" id="fam-save"><summary>One-time QR code for phones (print it now or skip it)</summary>
+          <p>This code is the channel's key. It is shown only now, while this tab is open; this page can't show it again later, not even from a radio. Print it if you want phones to join, and keep the printout like a house key. Scan it from inside the Meshtastic app (Channels, then scan), not with the phone's camera. Don't photograph it into a chat or email.</p>
+          <p class="hint">If you skip it, nothing is lost: any radio that has the channel can pass it to another radio here, over the cable.</p>
           <canvas id="fam-qr" width="10" height="10"></canvas>
           <details class="mini"><summary>Show the key to type in by hand</summary>
             <p>Name: <code id="fam-key-name"></code><br>Key: <code class="hash" id="fam-key"></code></p>

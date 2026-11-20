@@ -19,7 +19,7 @@ try:
     pg.click("#btn-fam-push"); pg.wait_for_timeout(200); print("push with no channel:", pg.inner_text("#log").strip()[-60:])
     pg.fill("#fam-name","SmithFam"); pg.click("#btn-fam-new")
     key_before = pg.text_content("#fam-key"); link = pg.evaluate("() => null")
-    print("created:", pg.inner_text("#fam-status"), "| key chars:", len(key_before), "| link shown anywhere:", "meshtastic.org/e/" in pg.content(), "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
+    print("created:", pg.inner_text("#fam-status"), "| key chars:", len(key_before), "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
     pg.fill("#fam-long","Dad"); pg.fill("#fam-short","DAD"); pg.click("#btn-fam-push")
     pg.wait_for_function("() => /radios? done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
     print(pg.inner_text("#log")); print("count:", pg.inner_text("#fam-count")); print("node:", json.dumps(pg.evaluate(NODE)))
@@ -28,13 +28,12 @@ try:
     print("after 2nd push chans:", json.dumps(pg.evaluate(NODE)["chans"]))
     # copy from a radio
     pg.click("[data-fam=read]"); pg.click("#btn-fam-read"); pg.wait_for_function("() => /Found|No named/.test(document.querySelector('#fam-status').textContent)", timeout=60000)
-    print("read:", pg.inner_text("#fam-status"), "| same link as created:", pg.text_content("#fam-key") == key_before)
-    # paste a link
-    link = "https://meshtastic.org/e/?add=true#" + pg.evaluate("""(k) => { const name = new TextEncoder().encode('SmithFam'); const psk = Uint8Array.from(atob(k), c => c.charCodeAt(0));
-      const inner = [0x12, psk.length, ...psk, 0x1a, name.length, ...name]; const outer = [0x0a, inner.length, ...inner];
-      return btoa(String.fromCharCode(...outer)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'') }""", key_before)
-    pg.click("[data-fam=paste]"); pg.fill("#fam-url", link); pg.click("#btn-fam-paste")
-    print("paste:", pg.inner_text("#fam-status"), "| same link:", pg.text_content("#fam-key") == key_before)
+    print("read:", pg.inner_text("#fam-status"))
+    print("after read: QR section hidden:", pg.is_hidden("#fam-save"), "| key text empty:", pg.text_content("#fam-key") == "", "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
+    # the page must take nothing from its own address: a crafted URL can't preload or alter a channel
+    pg2 = b.new_page(); pg2.add_init_script(fake)
+    pg2.goto("http://localhost:8765/family/?add=true&name=Evil&psk=AQ==#CgcSAQEaBEV2aWw"); pg2.wait_for_timeout(500)
+    print("crafted URL: channel ready shown:", pg2.is_visible("#fam-ready"), "| name field:", repr(pg2.input_value("#fam-name")), "| status:", repr(pg2.inner_text("#fam-status")))
     pg.locator("section[data-only=family]").first.screenshot(path="/tmp/family.png")
     print("pageerrors:", errs, "csp:", csp, "external:", [u for u in reqs if u.startswith("http")])
     b.close()
