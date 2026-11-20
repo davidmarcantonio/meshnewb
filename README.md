@@ -69,7 +69,7 @@ npm run serve          # http://localhost:8000
 | Step | What happens |
 |---|---|
 | Flash | `esptool-js` erases the ESP32, then writes the board's factory image, OTA app and filesystem at the offsets in the official `.mt.json` manifest (the same method as the official flasher). |
-| Configure | `@meshtastic/core` + `@meshtastic/transport-web-serial` read the node's current config, merge your changes in, and commit them in one edit session. `setConfig` replaces a whole section, so sending only some fields would reset the rest. |
+| Configure | `@meshtastic/core` (over a small serial transport of our own) reads the node's current config, merge your changes in, and commit them in one edit session. `setConfig` replaces a whole section, so sending only some fields would reset the rest. |
 | Verify | After the reboot it reconnects and reads every value back. |
 
 nRF52 boards (T-Echo, RAK4631): flash the UF2 by drag-and-drop, then use "Configure only".
@@ -97,4 +97,4 @@ PRESETS_COMMIT=<sha> npm run build
 
 ## License
 
-GPL-3.0-only, because the bundled `@meshtastic/core` and `@meshtastic/transport-web-serial` are GPL-3.0-only. `esptool-js` and `@bufbuild/protobuf` are Apache-2.0. Inter and JetBrains Mono are OFL-1.1.
+GPL-3.0-only, because the bundled `@meshtastic/core` is GPL-3.0-only. `esptool-js` and `@bufbuild/protobuf` are Apache-2.0. Inter and JetBrains Mono are OFL-1.1.

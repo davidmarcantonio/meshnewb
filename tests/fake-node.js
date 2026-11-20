@@ -27,7 +27,9 @@ class FakePort {
     setTimeout(() => { this.connected = true; node.rebooting = false; }, 9500);
   }
   getInfo() { return window.__fakeOpts?.usb ?? { usbVendorId: 0x10c4, usbProductId: 0xea60 }; }
+  // Like a real SerialPort: open() refuses while open, close() refuses while a stream is still locked.
   async open() {
+    if (this.readable || this.writable) throw new DOMException("The port is already open.", "InvalidStateError");
     let ctl; this.readable = new ReadableStream({ start: (c) => (ctl = c) });
     const push = (fr) => ctl.enqueue(frame(fr));
     let buf = [];
@@ -44,7 +46,11 @@ class FakePort {
       }
     }});
   }
-  async close() { try { await this.readable.cancel(); } catch {} this.readable = null; this.writable = null; }
+  async close() {
+    if (!this.readable) throw new DOMException("The port is already closed.", "InvalidStateError");
+    if (this.readable.locked || this.writable.locked) throw new TypeError("Cannot cancel a locked stream");
+    await this.readable.cancel(); this.readable = null; this.writable = null;
+  }
 }
 function handle(msg, push) {
   const v = msg.payloadVariant;

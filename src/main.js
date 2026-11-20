@@ -1,8 +1,7 @@
 // MeshNewb — flash stock Meshtastic firmware, then push settings over Web Serial.
-// Stack mirrors the official flasher: esptool-js + @meshtastic/core + transport-web-serial.
+// Stack mirrors the official flasher: esptool-js + @meshtastic/core. The serial transport is our own (see openTransport).
 import { ESPLoader, Transport } from "esptool-js";
-import { MeshDevice, Protobuf } from "@meshtastic/core";
-import { TransportWebSerial } from "@meshtastic/transport-web-serial";
+import { MeshDevice, Protobuf, Utils } from "@meshtastic/core";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import qrcode from "qrcode-generator";
 import { suggestName } from "./names.js";
@@ -498,17 +497,52 @@ async function flash() {
 }
 
 // ---------- configuring ----------
+// Our own serial transport. The library one (@meshtastic/transport-web-serial 0.2.5) can't let go of a port:
+// its disconnect() tries to close while the port's read stream is still locked, the close fails quietly, and
+// the tab keeps holding the port. The next connection then reuses the still-open port, can't read from it,
+// and looks exactly like a radio that says nothing. Here both pipes hang off one abort signal, so
+// disconnect() unlocks both streams and the port really closes.
+async function openTransport(p) {
+  if (p.readable || p.writable) { try { await p.close(); } catch {} }
+  if (p.readable || p.writable) throw new Error("The port is still open from an earlier step. Reload this page and try again");
+  await p.open({ baudRate: 115200 });
+  const ac = new AbortController();
+  const to = Utils.toDeviceStream();
+  const from = Utils.fromDeviceStream();
+  const down = to.readable.pipeTo(p.writable, { signal: ac.signal }).catch(() => {});
+  const up = p.readable.pipeTo(from.writable, { signal: ac.signal }).catch(() => {});
+  const fromDevice = new ReadableStream({
+    start(ctrl) {
+      ctrl.enqueue({ type: "status", data: { status: 5 } }); // DeviceConnected
+      (async () => {
+        const r = from.readable.getReader();
+        try { for (;;) { const { value, done } = await r.read(); if (done) break; ctrl.enqueue(value); } } catch {}
+        try { ctrl.close(); } catch {}
+      })();
+    },
+  });
+  let closed = null;
+  const disconnect = () => (closed ??= (async () => {
+    ac.abort();
+    await Promise.allSettled([down, up]);
+    try { await p.close(); } catch {}
+  })());
+  return { toDevice: to.writable, fromDevice, disconnect };
+}
 async function connectMesh(timeoutMs = 30000) {
   if (!port) {
     const granted = await navigator.serial.getPorts();
     port = granted.length === 1 ? granted[0] : await pickPort();
   }
-  const transport = await TransportWebSerial.createFromPort(port, 115200);
+  const transport = await openTransport(port);
   // Ask for the radio's own settings only (firmware's SPECIAL_NONCE_ONLY_CONFIG). A normal handshake also dumps
   // every other radio it has heard, which on a busy mesh can run past the timeout. Firmware that predates the
   // special value treats it as an ordinary id and sends everything, so this is safe either way.
   const ONLY_CONFIG = 69420;
   const dev = new MeshDevice(transport, ONLY_CONFIG);
+  // The library's disconnect can throw before it reaches the transport. Always release the port.
+  const libDisconnect = dev.disconnect.bind(dev);
+  dev.disconnect = async () => { try { await withTimeout(libDisconnect(), 3000, "disconnect"); } catch {} await transport.disconnect(); };
   const st = { config: {}, module: {}, channels: {}, myNodeNum: null, users: {}, metadata: null };
   const seen = { myInfo: 0, metadata: 0, config: 0, module: 0, channels: 0, nodes: 0 };
   dev.events.onMyNodeInfo.subscribe(() => seen.myInfo++);
