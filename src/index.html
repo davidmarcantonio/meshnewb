@@ -278,6 +278,25 @@
       <p><progress id="progress" max="100" value="0"></progress> <span id="progtext" class="hint"></span></p>
       <div id="log"></div>
     </section>
+    <section class="panel" data-only="radio">
+      <h2><span><span class="n">05</span>Start over</span><small>a radio that used to be someone else's</small></h2>
+      <p>Got a radio from a friend, or bought one used? A factory reset wipes the previous owner off it. The Meshtastic firmware stays, so afterwards you set it up above like a new one.</p>
+      <div class="buttons"><button type="button" class="act quiet" id="btn-reset">Factory reset this radio…</button></div>
+      <div class="card" id="reset-confirm" hidden>
+        <p><b id="reset-what"></b></p>
+        <p>This erases, and cannot be undone:</p>
+        <ul>
+          <li>its name, settings and every channel, including private channel keys</li>
+          <li>its list of other radios and any stored messages</li>
+          <li>its identity keys and Bluetooth pairings (re-pair your phone afterwards)</li>
+        </ul>
+        <div class="buttons">
+          <button type="button" class="act primary" id="btn-reset-go">Yes, erase it</button>
+          <button type="button" class="quiet" id="btn-reset-cancel">Cancel</button>
+        </div>
+      </div>
+      <div class="hint" id="reset-status"></div>
+    </section>
     <section class="panel" id="verify" hidden>
       <h2><span>Verification</span><small>read back from the node</small></h2>
       <table><tbody></tbody></table>

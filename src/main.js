@@ -686,6 +686,70 @@ async function run(kind) {
   } finally { busy(false); }
 }
 
+// ---------- factory reset ("someone gave me this radio") ----------
+// Two deliberate clicks, then a 10 second countdown inside the confirm button with Cancel beside it.
+let resetTimer = null;
+const resetIdle = () => { clearInterval(resetTimer); resetTimer = null; $("btn-reset-go").textContent = "Yes, erase it"; };
+async function resetStart() {
+  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
+  const out = $("reset-status");
+  $("reset-confirm").hidden = true; resetIdle();
+  busy(true);
+  try {
+    await pickPort();
+    let st = null;
+    out.textContent = "Asking the radio what it is…";
+    try { const c = await connectMesh(8000); st = c.st; try { await c.dev.disconnect(); } catch {} } catch { /* nothing answering */ }
+    try { await port.close(); } catch {}
+    const d = identify(st);
+    if (!d.fw) {
+      out.textContent = d.family === "nrf52"
+        ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under Hardware."
+        : "Meshtastic isn't answering on this radio, so it can't be reset from here. \"Erase, flash & configure\" wipes it completely and installs fresh firmware.";
+      return;
+    }
+    const who = st.users[st.myNodeNum]?.longName;
+    $("reset-what").textContent = `Erase ${d.name ?? "this radio"}${who ? `, currently named "${who}"` : ""} (firmware ${shortVer(d.fw)})?`;
+    $("reset-confirm").hidden = false;
+    out.textContent = "";
+  } catch (e) {
+    out.textContent = e.name === "NotFoundError" ? "No radio picked. Nothing was changed." : `Couldn't reach the radio: ${e.message}`;
+  } finally { busy(false); }
+}
+function resetArm() {
+  let n = 10;
+  busy(true); // also disables the confirm button itself; Cancel is not an action button and stays live
+  $("btn-reset-go").textContent = `Erasing in ${n}…`;
+  $("reset-status").textContent = "";
+  resetTimer = setInterval(() => {
+    n--;
+    if (n > 0) { $("btn-reset-go").textContent = `Erasing in ${n}…`; return; }
+    resetIdle(); $("btn-reset-go").textContent = "Erasing…";
+    resetFire();
+  }, 1000);
+}
+function resetCancel() {
+  const armed = !!resetTimer;
+  resetIdle(); busy(false);
+  $("reset-confirm").hidden = true;
+  $("reset-status").textContent = armed ? "Cancelled. Nothing was changed." : "";
+}
+async function resetFire() {
+  const out = $("reset-status");
+  try {
+    const { dev } = await connectWithRetry(2);
+    log("→ factory reset (everything on the radio)");
+    await Promise.race([dev.factoryResetDevice(), sleep(5000)]); // the radio reboots and may never acknowledge
+    try { await dev.disconnect(); } catch {}
+    try { await port.close(); } catch {}
+    ok("Factory reset sent. The radio is restarting with factory settings.");
+    out.textContent = "Done. Give it about 20 seconds to restart, then set it up above like a new radio. Remove the old pairing from your phone's Bluetooth settings.";
+  } catch (e) {
+    err(e.message || String(e));
+    out.textContent = `The reset didn't go through: ${e.message}. Nothing may have been changed; press the button to try again.`;
+  } finally { resetIdle(); $("reset-confirm").hidden = true; busy(false); }
+}
+
 // ---------- family / group channel (the /family/ page) ----------
 // The key is made in this tab, lives in memory only, and goes to radios over USB. Nothing is stored or sent.
 const SECONDARY = 2;
@@ -848,6 +912,9 @@ window.addEventListener("DOMContentLoaded", () => {
     else run("full");
   };
   famBoot();
+  $("btn-reset").onclick = resetStart;
+  $("btn-reset-go").onclick = resetArm;
+  $("btn-reset-cancel").onclick = resetCancel;
   if (document.body.dataset.page !== "family") loadPresetIndex();
   browserCheck();
 });
