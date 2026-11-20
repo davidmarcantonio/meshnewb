@@ -434,9 +434,11 @@ async function detect() {
     else if (d.fw) {
       const current = await resolveFirmware();
       const old = olderThan(d.fw, current);
+      const blank = (st?.config?.lora?.region ?? 0) === 0 ? " No region is set, so it is new or freshly erased." : "";
       out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}. `
         + (old ? `Out of date: current is ${shortVer(current)}. Update it before configuring` : "Up to date.")
-        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " This is an nRF52 board; if it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase, flash & configure" installs the current firmware.' : ""));
+        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " This is an nRF52 board; if it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase, flash & configure" installs the current firmware.' : ""))
+        + blank;
     }
     else if (d.family === "nrf52") out.textContent = `${d.name ?? "An nRF52 board"}, but Meshtastic didn't answer. Install the firmware with the steps below, then use "Configure only".`;
     else if (d.family === "esp32") out.textContent = "An ESP32 board with no Meshtastic answering (blank, or busy). Pick your exact board from the list; the USB id alone can't tell ESP32 boards apart.";
@@ -603,12 +605,13 @@ async function refreshPort() {
 //  - it is still on USB but its restart counter went up (boards with a USB bridge chip never drop).
 // Radios take anywhere from 2 to 12 seconds to start the restart after a commit, hence the patience.
 // Returns an open connection if it had to make one to read the counter, else null.
-function watchReboot(countBefore) {
+function watchReboot(countBefore, opts = {}) {
+  // opts.report: never warn or throw; resolve to { restarted, conn } and let the caller word the outcome.
   const p = port, key = usbKey(p).key;
   let dropped = false;
   const gone = new Promise((res) => p?.addEventListener?.("disconnect", () => { dropped = true; res(); }, { once: true }));
   return async () => {
-    const deadline = Date.now() + 25000;
+    const deadline = Date.now() + (opts.waitMs ?? 25000);
     log("Waiting for the radio to restart…");
     while (!dropped && Date.now() < deadline) {
       await Promise.race([gone, sleep(5000)]);
@@ -616,10 +619,11 @@ function watchReboot(countBefore) {
       let c = null;
       try { c = await connectMesh(8000); } catch { continue; }
       if (dropped) break;
-      if (c.st.rebootCount !== countBefore) return c;
+      if (c.st.rebootCount !== countBefore) return opts.report ? { restarted: true, conn: c } : c;
       try { await c.dev.disconnect(); } catch {}
     }
     if (!dropped) {
+      if (opts.report) return { restarted: false };
       if (countBefore !== undefined) warn("The radio hasn't restarted on its own. Checking what it saved; unplug and replug it afterwards so everything takes effect.");
       return null;
     }
@@ -627,8 +631,9 @@ function watchReboot(countBefore) {
     for (let i = 0; i < 40; i++) {
       await sleep(1000);
       const back = (await navigator.serial.getPorts()).find((x) => usbKey(x).key === key && x.connected !== false);
-      if (back) { port = back; await sleep(3000); return null; }
+      if (back) { port = back; await sleep(3000); return opts.report ? { restarted: true, conn: null } : null; }
     }
+    if (opts.report) return { restarted: false, gone: true };
     throw new Error("The radio didn't come back on USB after restarting. Unplug it, plug it back in, and press the button again to check.");
   };
 }
@@ -857,19 +862,48 @@ function resetCancel() {
   $("reset-confirm").hidden = true;
   $("reset-status").textContent = armed ? "Cancelled. Nothing was changed." : "";
 }
+// Where the restart button is, for the boards we can name. Used when a radio erases itself and then freezes.
+const RESET_BUTTON = { "t-echo": "the top button on its side" };
 async function resetFire() {
   const out = $("reset-status");
+  let sent = false;
   try {
-    const { dev } = await connectWithRetry(2);
+    const { dev, st } = await connectWithRetry(2);
+    const pioEnv = st.pioEnv;
+    const restarted = watchReboot(st.rebootCount, { report: true, waitMs: 30000 });
     log("→ factory reset (everything on the radio)");
-    await Promise.race([dev.factoryResetDevice(), sleep(5000)]); // the radio reboots and may never acknowledge
+    await Promise.race([dev.factoryResetDevice(), sleep(5000)]); // the radio is busy erasing and may never acknowledge
+    sent = true;
     try { await dev.disconnect(); } catch {}
     try { await port.close(); } catch {}
-    ok("Factory reset sent. The radio is restarting with factory settings.");
-    out.textContent = "Done. Give it about 20 seconds to restart, then set it up above like a new radio. Remove the old pairing from your phone's Bluetooth settings.";
+    out.textContent = "Erase command sent. Waiting for the radio to restart (up to 30 seconds)…";
+    // Don't take the radio's word for it: wait for a real restart, then look at what it has.
+    const r = await restarted();
+    if (!r.restarted) {
+      // Seen on a real T-Echo (2.7.26): it erased itself, then froze instead of restarting. One press of reset fixed it.
+      const where = RESET_BUTTON[pioEnv] ? ` (${RESET_BUTTON[pioEnv]})` : "";
+      warn("The erase command was sent, but the radio hasn't restarted by itself.");
+      out.textContent = r.gone
+        ? "The radio dropped off USB and hasn't come back. Unplug it, plug it back in, and press Detect in step 01. A blank radio shows up with no region set."
+        : `The radio took the erase command but hasn't restarted by itself; some freeze at this point. Press its reset button once${where}, wait about 20 seconds for it to start, then press Detect in step 01. A blank radio shows up with no region set.`;
+      return;
+    }
+    const c = r.conn ?? await connectWithRetry(4, 15000);
+    const region = c.st.config.lora?.region ?? 0;
+    try { await c.dev.disconnect(); } catch {}
+    try { await port.close(); } catch {}
+    if (region === 0) {
+      ok("Factory reset confirmed: the radio restarted and has no settings.");
+      out.textContent = "Done. The radio restarted and is blank. Set it up above like a new radio, and remove the old pairing from your phone's Bluetooth settings.";
+    } else {
+      err("The radio restarted but still has its settings.");
+      out.textContent = `The radio restarted but still has its old settings (region ${REGION_LABEL[region] ?? region}), so the erase did not take. Press the button to try again.`;
+    }
   } catch (e) {
     err(e.message || String(e));
-    out.textContent = `The reset didn't go through: ${e.message}. Nothing may have been changed; press the button to try again.`;
+    out.textContent = sent
+      ? `The erase command was sent, but checking the radio afterwards failed: ${e.message}. Unplug it, plug it back in, and press Detect in step 01 to see whether it is blank.`
+      : `The reset didn't go through: ${e.message}. Nothing was changed; press the button to try again.`;
   } finally { resetIdle(); $("reset-confirm").hidden = true; busy(false); }
 }
 

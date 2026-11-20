@@ -85,6 +85,12 @@ function handle(msg, push) {
       if (c === "setModuleConfig") node.module[a.payloadVariant.value.payloadVariant.case] = a.payloadVariant.value.payloadVariant.value;
       if (c === "setChannel") node.channels[a.payloadVariant.value.index] = a.payloadVariant.value;
       if (c === "setOwner") node.user = a.payloadVariant.value;
+      if (c === "factoryResetDevice" || c === "factoryResetConfig") {
+        // Wipe to blank unless told the erase is ignored; then restart, or freeze like a real T-Echo was seen to.
+        if (!window.__fakeOpts?.resetIgnored) { node.config.lora = create(C.Config_LoRaConfigSchema, { usePreset: true, region: 0, modemPreset: 0, hopLimit: 3, txEnabled: true }); node.user = { ...node.user, longName: "Meshtastic 3c4d", shortName: "3c4d" }; }
+        if (window.__fakeOpts?.resetHangs) node.rebooting = true;
+        else if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); else port.simulateBridgeReboot();
+      }
       if (c === "commitEditSettings") { node.commits++; if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); else port.simulateBridgeReboot(); }
     }
     const routing = toBinary(M.RoutingSchema, create(M.RoutingSchema, { variant: { case: "errorReason", value: 0 } }));

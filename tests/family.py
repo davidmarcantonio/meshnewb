@@ -41,7 +41,8 @@ try:
     pg2.goto("http://localhost:8765/family/?add=true&name=Evil&psk=AQ==#CgcSAQEaBEV2aWw"); pg2.wait_for_timeout(500)
     print("crafted URL: channel ready shown:", pg2.is_visible("#fam-ready"), "| name field:", repr(pg2.input_value("#fam-name")), "| status:", repr(pg2.inner_text("#fam-status")))
     # factory reset on the radio page: cancel inside the countdown sends nothing; letting it run sends the reset
-    pg3 = b.new_page(); pg3.add_init_script(fake); pg3.goto("http://localhost:8765/radio/"); pg3.wait_for_timeout(500)
+    USED = {"lora": {"region": 1, "modemPreset": 4, "channelNum": 45, "hopLimit": 6}}
+    pg3 = b.new_page(); pg3.add_init_script("window.__fakeOpts = " + json.dumps(USED)); pg3.add_init_script(fake); pg3.goto("http://localhost:8765/radio/"); pg3.wait_for_timeout(500)
     adm = lambda: pg3.evaluate("() => window.__fakeNode.adminLog.join(',')")
     pg3.click("#btn-reset"); pg3.wait_for_selector("#reset-confirm:not([hidden])", timeout=30000)
     print("reset prompt:", pg3.inner_text("#reset-what"))
@@ -51,8 +52,23 @@ try:
     print("after cancel + 9s:", pg3.inner_text("#reset-status"), "| admin:", repr(adm()), "| prompt hidden:", pg3.is_hidden("#reset-confirm"))
     pg3.click("#btn-reset"); pg3.wait_for_selector("#reset-confirm:not([hidden])", timeout=30000); pg3.click("#btn-reset-go")
     pg3.wait_for_timeout(6000); mid = adm()
-    pg3.wait_for_function("() => /Done\\.|didn't go through/.test(document.querySelector('#reset-status').textContent)", timeout=40000)
-    print("at 6s admin:", repr(mid), "| end:", pg3.inner_text("#reset-status")[:60], "| admin:", repr(adm()))
+    pg3.wait_for_function("() => /Done\\.|didn't go through|hasn't restarted|did not take/.test(document.querySelector('#reset-status').textContent)", timeout=60000)
+    end = pg3.inner_text("#reset-status")
+    print("at 6s admin:", repr(mid), "| end:", end[:60], "| admin:", repr(adm()))
+    assert end.startswith("Done. The radio restarted and is blank"), end
+    assert "Factory reset confirmed" in pg3.inner_text("#log")
+    # the reset must prove itself: a radio that freezes after erasing, and one that ignores the erase, are both reported as such
+    def reset_run(opts):
+        q = b.new_page(); q.add_init_script("window.__fakeOpts = " + json.dumps({**USED, **opts})); q.add_init_script(fake); q.goto("http://localhost:8765/radio/"); q.wait_for_timeout(500)
+        q.click("#btn-reset"); q.wait_for_selector("#reset-confirm:not([hidden])", timeout=30000); q.click("#btn-reset-go")
+        q.wait_for_function("() => /Done\\.|didn't go through|hasn't restarted|did not take|hasn't come back/.test(document.querySelector('#reset-status').textContent)", timeout=90000)
+        t = q.inner_text("#reset-status"); q.close(); return t
+    t = reset_run({"resetHangs": True, "pioEnv": "t-echo", "hasWifi": False})
+    print("frozen after erase:", t)
+    assert "Press its reset button once (the top button on its side)" in t and "Done" not in t, t
+    t = reset_run({"resetIgnored": True})
+    print("erase ignored:", t)
+    assert "erase did not take" in t and "region US" in t, t
     pg.locator("section[data-only=family]").first.screenshot(path="/tmp/family.png")
     print("pageerrors:", errs, "csp:", csp, "external:", [u for u in reqs if u.startswith("http")])
     b.close()
