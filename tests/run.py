@@ -112,5 +112,25 @@ try:
         assert "Meshtastic defaults (LongFast, slot auto, 3 hops)" in t and "not Meshtastic's defaults" not in t, t
         print("fresh-radio wording ok")
     scenario("Fresh radio + Standard settings: reports Meshtastic defaults", m, after=r2)
+    # "Put the radio in update mode": asks an nRF52 board to show its drive; says so plainly when it can't.
+    def dfu(opts, expect, sent):
+        with sync_playwright() as p:
+            b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+            pg = b.new_page()
+            pg.route("https://api.meshtastic.org/github/firmware/list", lambda r: r.fulfill(json=FW))
+            pg.route("https://api.meshtastic.org/resource/deviceHardware", lambda r: r.fulfill(json=HW))
+            pg.add_init_script("window.__fakeOpts = " + json.dumps(opts)); pg.add_init_script(fake)
+            pg.goto("http://localhost:8765/radio/index.html"); pg.wait_for_timeout(600)
+            pg.click("#btn-detect"); pg.wait_for_function("() => /running firmware/.test(document.querySelector('#detect-result').textContent)")
+            pg.click("#btn-dfu")
+            pg.wait_for_function("() => /Done\\.|didn't switch|isn't an nRF52|already in update/.test(document.querySelector('#dfu-status').textContent)", timeout=40000)
+            t = pg.inner_text("#dfu-status"); adm = pg.evaluate("() => window.__fakeNode.adminLog.join(',')")
+            print("update mode:", t, "| admin:", adm)
+            assert expect in t, t
+            assert ("enterDfuModeRequest" in adm) == sent, adm
+            b.close()
+    NRF = {"pioEnv":"t-echo","hasWifi":False,"nativeUsb":True,"usb":{"usbVendorId":0x239a,"usbProductId":0x4405}}
+    dfu(NRF, "A drive named TECHOBOOT should appear", True)
+    dfu({**NRF, "dfuIgnored": True}, "didn't switch", True)
 finally:
     srv.terminate()
