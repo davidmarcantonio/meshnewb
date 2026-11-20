@@ -554,7 +554,7 @@ async function connectMesh(timeoutMs = 30000) {
   dev.events.onConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.config[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onModuleConfigPacket.subscribe((c) => c.payloadVariant?.case && (st.module[c.payloadVariant.case] = c.payloadVariant.value));
   dev.events.onChannelPacket.subscribe((ch) => (st.channels[ch.index] = ch));
-  dev.events.onMyNodeInfo.subscribe((m) => { st.myNodeNum = m.myNodeNum; st.pioEnv = m.pioEnv || null; });
+  dev.events.onMyNodeInfo.subscribe((m) => { st.myNodeNum = m.myNodeNum; st.pioEnv = m.pioEnv || null; st.rebootCount = m.rebootCount; });
   dev.events.onNodeInfoPacket.subscribe((n) => n.user && (st.users[n.num] = n.user));
   dev.events.onDeviceMetadataPacket.subscribe((p) => (st.metadata = p.data));
   const configured = new Promise((res) => dev.events.onDeviceStatus.subscribe((x) => x === 7 && res()));
@@ -596,20 +596,38 @@ async function refreshPort() {
   const back = ports.find((p) => usbKey(p).key === lastUsbKey && p.connected !== false);
   if (back) { port = back; port.ondisconnect = () => warn("Serial port disconnected (normal during reboots on native-USB boards)."); }
 }
-// Call before sending the commit; await the returned function afterwards. It resolves once the radio has
-// restarted: either it dropped off USB and came back, or (bridge-chip boards) a fixed wait has passed.
-function watchReboot() {
+// Call before sending the commit, with the radio's restart counter from the connection that is about to commit;
+// await the returned function afterwards. It resolves once the radio has really restarted, so the check that
+// follows reads the radio as it will run, not as it was a moment before restarting. Two signs count:
+//  - it dropped off USB and came back (native-USB boards: nRF52, bridge-less ESP32-S3), or
+//  - it is still on USB but its restart counter went up (boards with a USB bridge chip never drop).
+// Radios take anywhere from 2 to 12 seconds to start the restart after a commit, hence the patience.
+// Returns an open connection if it had to make one to read the counter, else null.
+function watchReboot(countBefore) {
   const p = port, key = usbKey(p).key;
   let dropped = false;
   const gone = new Promise((res) => p?.addEventListener?.("disconnect", () => { dropped = true; res(); }, { once: true }));
   return async () => {
-    await Promise.race([gone, sleep(6000)]);
-    if (!dropped) return;
+    const deadline = Date.now() + 25000;
+    log("Waiting for the radio to restart…");
+    while (!dropped && Date.now() < deadline) {
+      await Promise.race([gone, sleep(5000)]);
+      if (dropped || countBefore === undefined) break;
+      let c = null;
+      try { c = await connectMesh(8000); } catch { continue; }
+      if (dropped) break;
+      if (c.st.rebootCount !== countBefore) return c;
+      try { await c.dev.disconnect(); } catch {}
+    }
+    if (!dropped) {
+      if (countBefore !== undefined) warn("The radio hasn't restarted on its own. Checking what it saved; unplug and replug it afterwards so everything takes effect.");
+      return null;
+    }
     log("Radio dropped off USB to restart; waiting for it to come back…");
     for (let i = 0; i < 40; i++) {
       await sleep(1000);
       const back = (await navigator.serial.getPorts()).find((x) => usbKey(x).key === key && x.connected !== false);
-      if (back) { port = back; await sleep(3000); return; }
+      if (back) { port = back; await sleep(3000); return null; }
     }
     throw new Error("The radio didn't come back on USB after restarting. Unplug it, plug it back in, and press the button again to check.");
   };
@@ -647,7 +665,12 @@ async function pushConfig(s) {
   const presetName = s.usePreset ? PRESET_LABEL[lora.modemPreset] ?? lora.modemPreset : `custom BW${lora.bandwidth}/SF${lora.spreadFactor}/CR${lora.codingRate}`;
 
   if (s.stock) {
-    await send(`LoRa: ${REGION_LABEL[s.region]} · firmware defaults kept (${presetName}, slot ${lora.channelNum || "auto"}, ${lora.hopLimit} hops)`, () => setCfg("lora", lora));
+    // "Standard settings" leaves the radio's LoRa settings alone. On a new or freshly erased radio those are
+    // Meshtastic's defaults; on a used one they are whatever its last owner (or mesh) set. Say which.
+    const onDefaults = lora.usePreset !== false && (lora.modemPreset ?? 0) === PRESET.LONG_FAST && !lora.channelNum && (lora.hopLimit ?? FW_DEFAULT.hopLimit) === FW_DEFAULT.hopLimit;
+    const what = `${presetName}, slot ${lora.channelNum || "auto"}, ${lora.hopLimit} hops`;
+    await send(`LoRa: ${REGION_LABEL[s.region]} · ${onDefaults ? `Meshtastic defaults (${what})` : `keeping what this radio already has (${what})`}`, () => setCfg("lora", lora));
+    if (!onDefaults) warn(`These are not Meshtastic's defaults (${PRESET_LABEL[PRESET.LONG_FAST]}, slot auto, ${FW_DEFAULT.hopLimit} hops): this radio was set up for a particular mesh before. Fine if that is the mesh you want. For a clean start, use "Start over" (card 05) and then set it up again.`);
   } else {
     await send(`device: role ${ROLE_LABEL[s.role]}${s.nodeInfoSecs ? `, nodeinfo ${fmtSecs(s.nodeInfoSecs)}` : ""}`, () =>
       setCfg("device", { ...have("device"), role: s.role, ...defined({ nodeInfoBroadcastSecs: s.nodeInfoSecs }) }));
@@ -699,7 +722,7 @@ async function pushConfig(s) {
   await send(`owner: "${s.longName}" / "${s.shortName}"`, () =>
     dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(me), longName: s.longName, shortName: s.shortName, isLicensed: false })));
 
-  rebootDone = watchReboot();
+  rebootDone = watchReboot(st.rebootCount);
   await send("commit (node will reboot)", () => dev.commitEditSettings());
   ok("Settings committed. Node is rebooting.");
   try { await dev.disconnect(); } catch {}
@@ -707,9 +730,9 @@ async function pushConfig(s) {
 }
 
 async function verify(s) {
-  await (rebootDone ? rebootDone() : sleep(4000));
+  const already = rebootDone ? await rebootDone() : (await sleep(4000), null);
   rebootDone = null;
-  const { dev, st } = await connectWithRetry(8, 15000);
+  const { dev, st } = already ?? await connectWithRetry(8, 15000);
   const L = st.config.lora ?? {}, D = st.config.device ?? {}, P = st.config.position ?? {}, B = st.config.bluetooth ?? {}, N = st.config.network ?? {};
   const T = st.module.telemetry ?? {};
   const me = st.users[st.myNodeNum] ?? {};
@@ -929,12 +952,11 @@ async function famPush() {
       dev.setChannel(create(Protobuf.Channel.ChannelSchema, { index: idx, role: SECONDARY, settings: { name: fam.name, psk: fam.psk, moduleSettings: { positionPrecision: $("fam-pos").checked ? 32 : 0 } } })));
     if (longName) await send(`owner: "${longName}" / "${shortName}"`, () =>
       dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(st.users[st.myNodeNum] ?? {}), longName, shortName, isLicensed: false })));
-    const restarted = watchReboot();
+    const restarted = watchReboot(st.rebootCount);
     await send("commit", () => dev.commitEditSettings());
     try { await dev.disconnect(); } catch {}
     try { await port.close(); } catch {}
-    await restarted();
-    const v = await connectWithRetry(8, 15000);
+    const v = (await restarted()) ?? await connectWithRetry(8, 15000);
     const got = v.st.channels[idx]?.settings;
     const good = got?.name === fam.name && bytesToB64(got.psk ?? new Uint8Array()) === bytesToB64(fam.psk);
     const pub = v.st.channels[0]?.settings;

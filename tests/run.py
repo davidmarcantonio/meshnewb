@@ -87,5 +87,30 @@ try:
     scenario("Radio that knows 300 others (busy mesh): config-only handshake connects at once", l, opts={"bigNodeDb":True}, after=l2)
     def m(pg): me(pg)
     scenario("Radio that opens the port but says nothing: clear message", m, opts={"mute":True})
+    # The check must come after the restart, however long the radio takes to start it (real T-Echo: about 11 s).
+    def order(pg):
+        t = pg.inner_text("#log")
+        assert "Verification passed" in t, t
+        assert "hasn't restarted" not in t, t
+        assert pg.evaluate("() => window.__fakeNode.rebootCount") == 8
+        return t
+    def n2(pg):
+        t = order(pg)
+        assert t.index("dropped off USB") < t.index("Verification passed"), t
+        assert "Serial port disconnected" not in t.split("Verification passed")[1], t
+        print("order ok: drop seen before the check")
+    scenario("Native-USB radio that takes 9 s to start restarting: check waits for it", k, opts={"pioEnv":"t-echo","hasWifi":False,"nativeUsb":True,"slowReboot":True,"usb":{"usbVendorId":0x239a,"usbProductId":0x4405}}, after=n2)
+    def o2(pg): order(pg); print("order ok: restart counter went up before the check")
+    scenario("Bridge-chip radio that takes 9 s to restart: check waits for the restart counter", m, opts={"slowReboot":True}, after=o2)
+    def q2(pg):
+        t = pg.inner_text("#log")
+        assert "keeping what this radio already has (MediumFast, slot 45, 6 hops)" in t and "not Meshtastic's defaults" in t, t
+        print("used-radio wording ok")
+    scenario("Used radio on another mesh's settings + Standard settings: says so", m, opts={"lora":{"modemPreset":4,"channelNum":45,"hopLimit":6}}, after=q2)
+    def r2(pg):
+        t = pg.inner_text("#log")
+        assert "Meshtastic defaults (LongFast, slot auto, 3 hops)" in t and "not Meshtastic's defaults" not in t, t
+        print("fresh-radio wording ok")
+    scenario("Fresh radio + Standard settings: reports Meshtastic defaults", m, after=r2)
 finally:
     srv.terminate()

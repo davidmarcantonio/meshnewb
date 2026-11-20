@@ -6,14 +6,14 @@ const node = {
   user: create(M.UserSchema, { id: "!1a2b3c4d", longName: "Meshtastic 3c4d", shortName: "3c4d", publicKey: new Uint8Array(32).fill(7) }),
   config: {
     device: create(C.Config_DeviceConfigSchema, { role: 0, nodeInfoBroadcastSecs: 10800 }),
-    lora: create(C.Config_LoRaConfigSchema, { usePreset: true, region: 0, modemPreset: 0, hopLimit: 3, txEnabled: true, txPower: 0 }),
+    lora: create(C.Config_LoRaConfigSchema, { usePreset: true, region: 0, modemPreset: 0, hopLimit: 3, txEnabled: true, txPower: 0, ...(window.__fakeOpts?.lora ?? {}) }),
     bluetooth: create(C.Config_BluetoothConfigSchema, { enabled: true, mode: 0, fixedPin: 123456 }),
     network: create(C.Config_NetworkConfigSchema, { wifiEnabled: false, ntpServer: "meshtastic.pool.ntp.org" }),
     position: create(C.Config_PositionConfigSchema, { positionBroadcastSecs: 900, positionBroadcastSmartEnabled: true, gpsUpdateInterval: 120 }),
   },
   module: { telemetry: create(Protobuf.ModuleConfig.ModuleConfig_TelemetryConfigSchema, { deviceUpdateInterval: 1800, environmentUpdateInterval: 1800 }) },
   channels: { 0: create(Protobuf.Channel.ChannelSchema, { index: 0, role: 1, settings: { psk: new Uint8Array([1]) } }) },
-  commits: 0, adminLog: [],
+  commits: 0, adminLog: [], rebootCount: 7,
 };
 window.__fakeNode = node;
 const frame = (fr) => { const b = toBinary(M.FromRadioSchema, create(M.FromRadioSchema, fr)); return new Uint8Array([0x94, 0xc3, b.length >> 8, b.length & 255, ...b]); };
@@ -21,10 +21,18 @@ class FakePort {
   constructor() { this.readable = null; this.writable = null; this.ondisconnect = null; this.connected = true; this._gone = []; }
   addEventListener(type, fn) { if (type === "disconnect") this._gone.push(fn); }
   removeEventListener() {}
+  // Firmware restarts a few seconds after a commit (about 7 on real radios; slowReboot mimics that).
   // Native-USB boards (nRF52, bridge-less ESP32-S3) fall off USB while they restart and answer nothing meanwhile.
   simulateNativeUsbReboot() {
-    setTimeout(() => { this.connected = false; node.rebooting = true; this.ondisconnect?.(); this._gone.splice(0).forEach((f) => f()); }, 2500);
-    setTimeout(() => { this.connected = true; node.rebooting = false; }, 9500);
+    const at = window.__fakeOpts?.slowReboot ? 9000 : 2500;
+    setTimeout(() => { this.connected = false; node.rebooting = true; node.rebootCount++; this.ondisconnect?.(); this._gone.splice(0).forEach((f) => f()); }, at);
+    setTimeout(() => { this.connected = true; node.rebooting = false; }, at + 7000);
+  }
+  // Boards with a USB bridge chip stay on USB; the radio just goes quiet for a moment and its restart counter goes up.
+  simulateBridgeReboot() {
+    const at = window.__fakeOpts?.slowReboot ? 9000 : 1500;
+    setTimeout(() => { node.rebooting = true; node.rebootCount++; }, at);
+    setTimeout(() => { node.rebooting = false; }, at + 2500);
   }
   getInfo() { return window.__fakeOpts?.usb ?? { usbVendorId: 0x10c4, usbProductId: 0xea60 }; }
   // Like a real SerialPort: open() refuses while open, close() refuses while a stream is still locked.
@@ -59,7 +67,7 @@ function handle(msg, push) {
     // A radio that has heard many others sends them all unless asked for config only (69420).
     const others = window.__fakeOpts?.bigNodeDb && v.value !== 69420 ? 300 : 0;
     setTimeout(() => {
-      push({ payloadVariant: { case: "myInfo", value: { myNodeNum: NUM, pioEnv: window.__fakeOpts?.pioEnv ?? "heltec-v3" } } });
+      push({ payloadVariant: { case: "myInfo", value: { myNodeNum: NUM, rebootCount: node.rebootCount, pioEnv: window.__fakeOpts?.pioEnv ?? "heltec-v3" } } });
       push({ payloadVariant: { case: "metadata", value: { firmwareVersion: window.__fakeOpts?.fw ?? "2.7.26.54e0d8d", hasWifi: window.__fakeOpts?.hasWifi ?? true, hasBluetooth: true } } });
       push({ payloadVariant: { case: "nodeInfo", value: { num: NUM, user: node.user } } });
       for (const [k, val] of Object.entries(node.config)) push({ payloadVariant: { case: "config", value: { payloadVariant: { case: k, value: val } } } });
@@ -77,7 +85,7 @@ function handle(msg, push) {
       if (c === "setModuleConfig") node.module[a.payloadVariant.value.payloadVariant.case] = a.payloadVariant.value.payloadVariant.value;
       if (c === "setChannel") node.channels[a.payloadVariant.value.index] = a.payloadVariant.value;
       if (c === "setOwner") node.user = a.payloadVariant.value;
-      if (c === "commitEditSettings") { node.commits++; if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); }
+      if (c === "commitEditSettings") { node.commits++; if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); else port.simulateBridgeReboot(); }
     }
     const routing = toBinary(M.RoutingSchema, create(M.RoutingSchema, { variant: { case: "errorReason", value: 0 } }));
     setTimeout(() => push({ payloadVariant: { case: "packet", value: { from: NUM, to: NUM, id: Math.floor(Math.random() * 1e9), payloadVariant: { case: "decoded", value: { portnum: P.ROUTING_APP, payload: routing, requestId: pkt.id } } } } }), 20);
