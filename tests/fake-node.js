@@ -18,7 +18,14 @@ const node = {
 window.__fakeNode = node;
 const frame = (fr) => { const b = toBinary(M.FromRadioSchema, create(M.FromRadioSchema, fr)); return new Uint8Array([0x94, 0xc3, b.length >> 8, b.length & 255, ...b]); };
 class FakePort {
-  constructor() { this.readable = null; this.writable = null; this.ondisconnect = null; }
+  constructor() { this.readable = null; this.writable = null; this.ondisconnect = null; this.connected = true; this._gone = []; }
+  addEventListener(type, fn) { if (type === "disconnect") this._gone.push(fn); }
+  removeEventListener() {}
+  // Native-USB boards (nRF52, bridge-less ESP32-S3) fall off USB while they restart and answer nothing meanwhile.
+  simulateNativeUsbReboot() {
+    setTimeout(() => { this.connected = false; node.rebooting = true; this.ondisconnect?.(); this._gone.splice(0).forEach((f) => f()); }, 2500);
+    setTimeout(() => { this.connected = true; node.rebooting = false; }, 9500);
+  }
   getInfo() { return window.__fakeOpts?.usb ?? { usbVendorId: 0x10c4, usbProductId: 0xea60 }; }
   async open() {
     let ctl; this.readable = new ReadableStream({ start: (c) => (ctl = c) });
@@ -33,7 +40,7 @@ class FakePort {
         if (buf.length < i + 4 + len) return;
         const msg = fromBinary(M.ToRadioSchema, new Uint8Array(buf.slice(i + 4, i + 4 + len)));
         buf = buf.slice(i + 4 + len);
-        handle(msg, push);
+        if (!node.rebooting) handle(msg, push);
       }
     }});
   }
@@ -60,7 +67,7 @@ function handle(msg, push) {
       if (c === "setModuleConfig") node.module[a.payloadVariant.value.payloadVariant.case] = a.payloadVariant.value.payloadVariant.value;
       if (c === "setChannel") node.channels[a.payloadVariant.value.index] = a.payloadVariant.value;
       if (c === "setOwner") node.user = a.payloadVariant.value;
-      if (c === "commitEditSettings") node.commits++;
+      if (c === "commitEditSettings") { node.commits++; if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); }
     }
     const routing = toBinary(M.RoutingSchema, create(M.RoutingSchema, { variant: { case: "errorReason", value: 0 } }));
     setTimeout(() => push({ payloadVariant: { case: "packet", value: { from: NUM, to: NUM, id: Math.floor(Math.random() * 1e9), payloadVariant: { case: "decoded", value: { portnum: P.ROUTING_APP, payload: routing, requestId: pkt.id } } } } }), 20);
