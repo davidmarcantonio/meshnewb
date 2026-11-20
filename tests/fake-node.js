@@ -91,6 +91,8 @@ function handle(msg, push) {
         if (window.__fakeOpts?.resetHangs) node.rebooting = true;
         else if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); else port.simulateBridgeReboot();
       }
+      // nRF52 leaves for its bootloader: off USB as this device, and it does not come back as a Meshtastic port.
+      if (c === "enterDfuModeRequest" && !window.__fakeOpts?.dfuIgnored) setTimeout(() => { port.connected = false; node.rebooting = true; port.ondisconnect?.(); port._gone.splice(0).forEach((f) => f()); }, 300);
       if (c === "commitEditSettings") { node.commits++; if (window.__fakeOpts?.nativeUsb) port.simulateNativeUsbReboot(); else port.simulateBridgeReboot(); }
     }
     const routing = toBinary(M.RoutingSchema, create(M.RoutingSchema, { variant: { case: "errorReason", value: 0 } }));

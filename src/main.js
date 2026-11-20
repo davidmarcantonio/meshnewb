@@ -417,6 +417,49 @@ function showNrfSteps(on) {
   $("nrf-cp").textContent = `cp -X ~/Downloads/firmware-${env}-*.uf2 /Volumes/<drive name>/`;
 }
 
+// nRF52 boards update by drag-and-drop onto a drive their bootloader shows. Getting there normally takes a quick
+// double-press of the reset button, which is fiddly; firmware 2.2.17+ will also go there when asked over USB
+// (the official flasher does the same). Nothing is erased or written by this.
+const BOOT_DRIVE = { "t-echo": "TECHOBOOT" };
+async function enterUpdateMode() {
+  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
+  const out = $("dfu-status");
+  const manual = "Double-press the board's Reset button quickly instead.";
+  busy(true);
+  try {
+    await pickPort();
+    if (NRF_UPDATE_MODE.has(usbKey(port).key)) { out.textContent = "This board is already in update mode. Its drive should be showing; go on to the next step."; return; }
+    out.textContent = "Asking the radio to switch to update mode…";
+    let c;
+    try { c = await connectMesh(10000); }
+    catch { out.textContent = `Meshtastic didn't answer on that port, so it can't be asked. ${manual}`; return; }
+    const d = identify(c.st);
+    if (d.family !== "nrf52") {
+      try { await c.dev.disconnect(); } catch {}
+      out.textContent = "This isn't an nRF52 board, so it doesn't update by drag-and-drop. Use \"Erase, flash & configure\" in step 04.";
+      return;
+    }
+    const p = port;
+    let dropped = false;
+    const gone = new Promise((res) => p.addEventListener?.("disconnect", () => { dropped = true; res(); }, { once: true }));
+    log("→ enter update mode (nothing is erased)");
+    await Promise.race([c.dev.enterDfuMode(), sleep(3000)]); // it leaves at once and may never acknowledge
+    try { await c.dev.disconnect(); } catch {}
+    try { await p.close(); } catch {}
+    await Promise.race([gone, sleep(10000)]);
+    const drive = BOOT_DRIVE[d.pioEnv] ? `named ${BOOT_DRIVE[d.pioEnv]}` : "(its name usually ends in BOOT)";
+    if (dropped) {
+      ok("The radio switched to update mode.");
+      out.textContent = `Done. A drive ${drive} should appear on your computer within a few seconds. Go on to the next step. To back out without updating, press the board's Reset button once.`;
+    } else {
+      warn("The radio didn't switch to update mode.");
+      out.textContent = `The radio didn't switch (older firmware can't). ${manual}`;
+    }
+  } catch (e) {
+    out.textContent = e.name === "NotFoundError" ? "No device picked." : `Couldn't switch to update mode: ${e.message}. ${manual}`;
+  } finally { busy(false); }
+}
+
 async function detect() {
   if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
   const out = $("detect-result");
@@ -1062,6 +1105,7 @@ window.addEventListener("DOMContentLoaded", () => {
   renderCommunity(); syncPresetFields(); setMode("standard");
   $("btn-find-mesh").onclick = () => setMode("community");
   $("btn-detect").onclick = detect;
+  $("btn-dfu").onclick = enterUpdateMode;
   $("btn-fw-anyway").onclick = async () => { fwOverride = true; try { await run("config"); } finally { fwOverride = false; } };
   $("btn-fw-update").onclick = () => {
     $("fw-gate").hidden = true;
