@@ -2,7 +2,13 @@
 
 Flash and configure a [Meshtastic](https://meshtastic.org) node from your browser. Start with the standard settings the firmware ships with, pick your state and community to get your local mesh's published settings, or set every radio value by hand. Enter your name and PIN, plug in the board, and press one button. The page flashes the official beta firmware, sends your settings to the radio over USB, then reads them back to check they took.
 
-Live at https://mesh.marcantonio.me. Unofficial. Not affiliated with Meshtastic LLC.
+Live at https://mesh.marcantonio.me:
+
+- `/` picks what to do. It runs no scripts.
+- `/radio/` flashes and configures one radio.
+- `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page shows it as a link and QR code to save. A radio that already has the channel can be read to set up another.
+
+All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
 ## Firmware: "Beta" is the one you want
 

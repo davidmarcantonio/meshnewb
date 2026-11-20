@@ -3,7 +3,8 @@
 import { ESPLoader, Transport } from "esptool-js";
 import { MeshDevice, Protobuf } from "@meshtastic/core";
 import { TransportWebSerial } from "@meshtastic/transport-web-serial";
-import { create, fromBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
+import qrcode from "qrcode-generator";
 import BOARDS from "../data/boards.json";
 import FIRMWARE from "../data/firmware.json";
 import { USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL, FW_DEFAULT } from "./enums.js";
@@ -107,7 +108,7 @@ const communityCache = new Map();
 
 async function loadPresetIndex() {
   try {
-    const r = await fetch("presets/index.json", SAME_ORIGIN);
+    const r = await fetch("../presets/index.json", SAME_ORIGIN);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     presetIndex = await r.json();
   } catch (e) {
@@ -147,7 +148,7 @@ async function pickCommunity() {
   if (!entry) return;
   try {
     if (!communityCache.has(id)) {
-      const r = await fetch(`presets/${entry.path}`, SAME_ORIGIN);
+      const r = await fetch(`../presets/${entry.path}`, SAME_ORIGIN);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       communityCache.set(id, await r.json());
     }
@@ -685,6 +686,119 @@ async function run(kind) {
   } finally { busy(false); }
 }
 
+// ---------- family / group channel (the /family/ page) ----------
+// The key is made in this tab, lives in memory only, and goes to radios over USB. Nothing is stored or sent.
+const SECONDARY = 2;
+let fam = null;        // { name, psk: Uint8Array }
+let famChoices = [];   // channels read from a radio or a link, when there is more than one
+let famDone = 0;
+
+function famLink() {
+  const cs = create(Protobuf.AppOnly.ChannelSetSchema, { settings: [{ name: fam.name, psk: fam.psk, moduleSettings: { positionPrecision: $("fam-pos").checked ? 32 : 0 } }] });
+  const b = bytesToB64(toBinary(Protobuf.AppOnly.ChannelSetSchema, cs)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return "https://meshtastic.org/e/?add=true#" + b;
+}
+function famRender() {
+  $("fam-ready").hidden = !fam;
+  if (!fam) return;
+  $("fam-ready-name").textContent = fam.name;
+  const link = famLink();
+  $("fam-link").textContent = link;
+  const q = qrcode(0, "M"); q.addData(link); q.make();
+  const n = q.getModuleCount(), scale = 5, pad = 4, cv = $("fam-qr");
+  cv.width = cv.height = (n + pad * 2) * scale;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = "#000";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect((c + pad) * scale, (r + pad) * scale, scale, scale);
+}
+function famUse(list, from) {
+  famChoices = list.filter((c) => c.name && c.psk?.length);
+  $("fam-pick-row").hidden = famChoices.length < 2;
+  $("fam-pick").replaceChildren();
+  famChoices.forEach((c, i) => opt("fam-pick", String(i), c.name, i === 0));
+  fam = famChoices[0] ? { name: famChoices[0].name, psk: famChoices[0].psk } : null;
+  $("fam-status").textContent = fam ? `Found ${famChoices.length === 1 ? `channel "${fam.name}"` : `${famChoices.length} channels`} ${from}.` : `No named private channel found ${from}.`;
+  famRender();
+}
+function famNew() {
+  const name = $("fam-name").value.trim();
+  if (!name || new TextEncoder().encode(name).length > 11) { $("fam-status").textContent = "Give the channel a name of 1 to 11 characters."; return; }
+  fam = { name, psk: crypto.getRandomValues(new Uint8Array(32)) };
+  $("fam-pick-row").hidden = true;
+  $("fam-status").textContent = `Created "${name}" with a new random key. Save the link or QR code below before closing this tab.`;
+  famRender();
+}
+async function famRead() {
+  busy(true);
+  try {
+    port = null;
+    const { dev, st } = await connectWithRetry(2);
+    const list = Object.values(st.channels).filter((c) => c.index > 0 && c.role === SECONDARY).map((c) => ({ name: c.settings?.name, psk: c.settings?.psk }));
+    try { await dev.disconnect(); } catch {}
+    try { await port.close(); } catch {}
+    famUse(list, "on that radio");
+  } catch (e) { $("fam-status").textContent = `Couldn't read the radio: ${e.message}`; }
+  finally { busy(false); }
+}
+function famPaste() {
+  try { famUse(parseChannelUrl($("fam-url").value.trim()).settings.map((c) => ({ name: c.name, psk: c.psk })), "in that link"); }
+  catch (e) { $("fam-status").textContent = `That link didn't parse: ${e.message}`; }
+}
+async function famPush() {
+  if (!fam) { err("Create or load the channel first (step 01)."); return; }
+  const longName = $("fam-long").value.trim(), shortName = $("fam-short").value.trim();
+  if ((longName && !shortName) || (!longName && shortName)) { err("Fill in both names, or leave both empty to keep the radio's current name."); return; }
+  if ([...shortName].length > 4) { err("Short name is max 4 characters."); return; }
+  busy(true);
+  try {
+    port = null;
+    const { dev, st } = await connectWithRetry();
+    ok(`Connected. Node !${(st.myNodeNum >>> 0).toString(16)}, firmware ${st.metadata?.firmwareVersion ?? "?"}`);
+    const used = (i) => st.channels[i] && st.channels[i].role;
+    let idx = [1, 2, 3, 4, 5, 6, 7].find((i) => used(i) && st.channels[i].settings?.name === fam.name);
+    const replacing = idx !== undefined;
+    idx ??= [1, 2, 3, 4, 5, 6, 7].find((i) => !used(i));
+    if (idx === undefined) throw new Error("This radio already has 7 extra channels. Remove one in the Meshtastic app first.");
+    const send = async (what, fn) => { log(`→ ${what}`); await withTimeout(fn(), 15000, what); };
+    await send("start edit", () => dev.beginEditSettings());
+    await send(`channel ${idx}: "${fam.name}"${replacing ? " (replacing the one with the same name)" : ""}, location ${$("fam-pos").checked ? "shared" : "not shared"}`, () =>
+      dev.setChannel(create(Protobuf.Channel.ChannelSchema, { index: idx, role: SECONDARY, settings: { name: fam.name, psk: fam.psk, moduleSettings: { positionPrecision: $("fam-pos").checked ? 32 : 0 } } })));
+    if (longName) await send(`owner: "${longName}" / "${shortName}"`, () =>
+      dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(st.users[st.myNodeNum] ?? {}), longName, shortName, isLicensed: false })));
+    await send("commit", () => dev.commitEditSettings());
+    try { await dev.disconnect(); } catch {}
+    try { await port.close(); } catch {}
+    await sleep(4000);
+    const v = await connectWithRetry(8);
+    const got = v.st.channels[idx]?.settings;
+    const good = got?.name === fam.name && bytesToB64(got.psk ?? new Uint8Array()) === bytesToB64(fam.psk);
+    const pub = v.st.channels[0]?.settings;
+    try { await v.dev.disconnect(); } catch {}
+    try { await port.close(); } catch {}
+    if (!good) throw new Error("The radio didn't keep the channel. Try again, or check it in the Meshtastic app.");
+    famDone++;
+    ok(`Channel "${fam.name}" is on this radio (slot ${idx}); its main channel is still ${pub?.name ? `"${pub.name}"` : "the public default"}.`);
+    $("fam-count").textContent = `${famDone} radio${famDone === 1 ? "" : "s"} done. Unplug this one, plug in the next, change the name above, and press the button again.`;
+    $("fam-long").value = ""; $("fam-short").value = "";
+  } catch (e) {
+    err(e.message || String(e));
+    if (e.name === "NotFoundError") warn("No radio picked. If yours wasn't listed, try a different USB cable.");
+  } finally { busy(false); }
+}
+function famBoot() {
+  document.querySelectorAll("[data-fam]").forEach((b) => (b.onclick = () => {
+    document.querySelectorAll("[data-fam]").forEach((x) => x.classList.toggle("on", x === b));
+    for (const k of ["new", "read", "paste"]) $(`fam-${k}`).hidden = k !== b.dataset.fam;
+  }));
+  $("btn-fam-new").onclick = famNew;
+  $("btn-fam-read").onclick = famRead;
+  $("btn-fam-paste").onclick = famPaste;
+  $("btn-fam-push").onclick = famPush;
+  $("btn-fam-print").onclick = () => window.print();
+  $("fam-pick").onchange = () => { const c = famChoices[Number($("fam-pick").value)]; fam = { name: c.name, psk: c.psk }; famRender(); };
+  $("fam-pos").onchange = famRender;
+}
+
 // ---------- browser check ----------
 function browserCheck() {
   const el = $("browser-check");
@@ -734,6 +848,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (detected?.family === "nrf52") { showNrfSteps(true); $("nrf-steps").scrollIntoView({ behavior: "smooth", block: "center" }); }
     else run("full");
   };
-  loadPresetIndex();
+  famBoot();
+  if (document.body.dataset.page !== "family") loadPresetIndex();
   browserCheck();
 });

@@ -133,3 +133,12 @@ details.mini summary { margin-top: 6px; font-size: 12px; }
 details.mini p { font-size: 13px; color: var(--text-2); margin: 6px 0; }
 details.mini b { color: var(--text); font-weight: 500; }
 label.inline .hint { display: inline; margin: 0; }
+
+/* One template, two pages: /radio/ and /family/. Each hides the other's parts. */
+body[data-page="radio"] [data-only="family"], body[data-page="family"] [data-only="radio"] { display: none; }
+#fam-qr { background: #fff; border-radius: 6px; margin-top: 8px; image-rendering: pixelated; }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 14px; }
+a.choice { display: block; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; background: var(--surface); color: var(--text); text-decoration: none; }
+a.choice:hover { border-color: var(--accent); }
+a.choice b { display: block; font-size: 18px; margin-bottom: 6px; }
+a.choice span { color: var(--text-2); font-size: 14px; }

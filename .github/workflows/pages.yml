@@ -94,6 +94,8 @@ jobs:
           # build.json names the presets commit and the sha256 of every preset file.
           subject-path: |
             dist/index.html
+            dist/radio/index.html
+            dist/family/index.html
             dist/app.js
             dist/app.css
             dist/build.json

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="MeshNewb: set up a Meshtastic radio, or give your family a private channel, from your browser. No cookies, no analytics, open source.">
+<title>MeshNewb</title>
+<link rel="stylesheet" href="app.css" integrity="{{CSS_SRI}}">
+</head>
+<body data-page="home">
+<div class="wrap">
+<header class="site">
+  <div class="eyebrow">Meshtastic · from your browser</div>
+  <h1>MeshNewb<span class="dot">.</span> get your radios talking</h1>
+  <p>Meshtastic radios send text messages to each other with no cell service and no internet. This site sets them up over a USB cable. What do you want to do?</p>
+</header>
+
+<div class="choices">
+  <a class="choice" href="radio/"><b>Set up a radio</b><span>A new radio, or one that needs the right settings for your area. Installs the firmware and configures it.</span></a>
+  <a class="choice" href="family/"><b>Set up a family or group channel</b><span>Give several radios the same private channel so your household can message each other. Do one radio after another.</span></a>
+</div>
+<p class="hint">Not sure? Start with "Set up a radio". Do the family channel after every radio is set up.</p>
+
+<section class="panel prereq">
+  <h2><span><span class="n">&#9679;</span>What you need</span></h2>
+  <ul class="plain">
+    <li><b>A desktop browser:</b> Chrome, Edge or Opera on a computer. Not Safari, not a phone or tablet.</li>
+    <li><b>A USB data cable.</b> Charge-only cables look identical and are the most common reason a radio isn't found. If one cable doesn't work, try another.</li>
+    <li><b>The antenna attached</b> before the radio is powered.</li>
+  </ul>
+</section>
+
+<section class="panel prereq">
+  <h2><span><span class="n">&#9679;</span>Private by design</span></h2>
+  <ul class="plain">
+    <li>Names, PINs, passwords and channel keys go from your browser to your radio over the cable, and nowhere else.</li>
+    <li>No cookies, no analytics, no trackers. This page runs no scripts at all.</li>
+    <li>Source: <a href="https://github.com/{{REPO}}" rel="noopener noreferrer">github.com/{{REPO}}</a> (GPL-3.0). Each setup page shows how to check that what you got is what was published.</li>
+  </ul>
+</section>
+
+<footer class="site">
+  <p>App build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a>. Presets as of {{PRESETS_DATE}}, commit <a href="https://github.com/{{PRESETS_REPO}}/commit/{{PRESETS_COMMIT}}" rel="noopener noreferrer"><code>{{PRESETS_COMMIT_SHORT}}</code></a>.</p>
+  <p>Unofficial; not affiliated with Meshtastic LLC. A mesh radio is a backup, not a replacement for 911. GPL-3.0.</p>
+</footer>
+</div>
+</body>
+</html>

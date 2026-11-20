@@ -12,7 +12,7 @@ try:
     pg.route("https://api.meshtastic.org/**", handle)
     pg.route("https://release.meshtastic.org/**", handle)
     pg.route("https://example.com/**", handle)
-    pg.goto("http://localhost:8765/index.html"); pg.wait_for_timeout(500)
+    pg.goto("http://localhost:8765/radio/index.html"); pg.wait_for_timeout(500)
     res = pg.evaluate("""async () => { const t = async u => { try { await fetch(u, {referrerPolicy:'no-referrer', credentials:'omit'}); return 'allowed' } catch(e) { return 'BLOCKED' } };
       return { api: await t('https://api.meshtastic.org/github/firmware/list'), release: await t('https://release.meshtastic.org/x.json'), other: await t('https://example.com/beacon') } }""")
     print("fetch results:", res)
