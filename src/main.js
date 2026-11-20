@@ -432,7 +432,13 @@ async function detect() {
     }
     const d = identify(st);
     if (d.updateMode) out.textContent = "An nRF52 board in update mode (its USB drive should be showing). Copy the firmware file onto the drive; steps below.";
-    else if (d.fw) out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}.` + (d.family === "nrf52" ? " This is an nRF52 board: the page can configure it, but updating is drag-and-drop (steps below)." : "");
+    else if (d.fw) {
+      const current = await resolveFirmware();
+      const old = olderThan(d.fw, current);
+      out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}. `
+        + (old ? `Out of date: current is ${shortVer(current)}. Update it before configuring` : "Up to date.")
+        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " This is an nRF52 board; if it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase, flash & configure" installs the current firmware.' : ""));
+    }
     else if (d.family === "nrf52") out.textContent = `${d.name ?? "An nRF52 board"}, but Meshtastic didn't answer. Install the firmware with the steps below, then use "Configure only".`;
     else if (d.family === "esp32") out.textContent = "An ESP32 board with no Meshtastic answering (blank, or busy). Pick your exact board from the list; the USB id alone can't tell ESP32 boards apart.";
     else out.textContent = "Couldn't tell what this is. Pick your board from the list.";
@@ -699,7 +705,7 @@ async function run(kind) {
   const { s, problems } = readSettings();
   if (problems.length) { problems.forEach(err); return; }
   if (kind === "full" && detected?.family === "nrf52") {
-    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under Hardware), then press \"Configure only\".");
+    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under \"Your radio\"), then press \"Configure only\".");
     return;
   }
   $("fw-gate").hidden = true;
@@ -745,7 +751,7 @@ async function resetStart() {
     const d = identify(st);
     if (!d.fw) {
       out.textContent = d.family === "nrf52"
-        ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under Hardware."
+        ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under \"Your radio\"."
         : "Meshtastic isn't answering on this radio, so it can't be reset from here. \"Erase, flash & configure\" wipes it completely and installs fresh firmware.";
       return;
     }
