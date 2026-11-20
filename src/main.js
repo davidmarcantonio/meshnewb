@@ -5,6 +5,7 @@ import { MeshDevice, Protobuf } from "@meshtastic/core";
 import { TransportWebSerial } from "@meshtastic/transport-web-serial";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import qrcode from "qrcode-generator";
+import { suggestName } from "./names.js";
 import BOARDS from "../data/boards.json";
 import FIRMWARE from "../data/firmware.json";
 import { USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL, FW_DEFAULT } from "./enums.js";
@@ -912,6 +913,11 @@ window.addEventListener("DOMContentLoaded", () => {
     else run("full");
   };
   famBoot();
+  $("btn-name").onclick = () => { const n = suggestName(); $("longname").value = n.long; $("shortname").value = n.short; };
+  let famWord = null; // one word per family, a new number per radio
+  const famSuggest = (keep) => { const n = suggestName(keep ? famWord : null); famWord = n.word; $("fam-long").value = n.long; $("fam-short").value = n.short; $("btn-fam-word").hidden = false; };
+  $("btn-fam-name").onclick = () => famSuggest(true);
+  $("btn-fam-word").onclick = () => famSuggest(false);
   $("btn-reset").onclick = resetStart;
   $("btn-reset-go").onclick = resetArm;
   $("btn-reset-cancel").onclick = resetCancel;

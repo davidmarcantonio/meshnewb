@@ -20,6 +20,12 @@ try:
     pg.fill("#fam-name","SmithFam"); pg.click("#btn-fam-new")
     key_before = pg.text_content("#fam-key"); link = pg.evaluate("() => null")
     print("created:", pg.inner_text("#fam-status"), "| key chars:", len(key_before), "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
+    import re
+    pg.click("#btn-fam-name"); n1 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
+    pg.click("#btn-fam-name"); n2 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
+    pg.click("#btn-fam-word"); n3 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
+    okfmt = all(re.fullmatch(r"[A-Z][a-z]+ [1-9][0-9]", l) and s_ == l[:2].upper() + l[-2:] for l, s_ in (n1, n2, n3))
+    print("suggested:", n1, n2, n3, "| format ok:", okfmt, "| word kept on 2nd press:", n1[0].split()[0] == n2[0].split()[0])
     pg.fill("#fam-long","Dad"); pg.fill("#fam-short","DAD"); pg.click("#btn-fam-push")
     pg.wait_for_function("() => /radios? done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
     print(pg.inner_text("#log")); print("count:", pg.inner_text("#fam-count")); print("node:", json.dumps(pg.evaluate(NODE)))
