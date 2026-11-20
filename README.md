@@ -10,6 +10,8 @@ Live at https://mesh.marcantonio.me:
 
 All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
+New to Meshtastic? The plain-English guide that goes with this tool is [Meshtastic for Emergencies: Text Your Family When the Phones Go Down](https://marcantonio.me/emergency-texting/). Built by [David Marcantonio](https://marcantonio.me).
+
 ## Firmware: "Beta" is the one you want
 
 Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone. "Alpha" is the test build. MeshNewb only installs Beta.
