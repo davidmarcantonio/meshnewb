@@ -432,7 +432,13 @@ async function detect() {
     }
     const d = identify(st);
     if (d.updateMode) out.textContent = "An nRF52 board in update mode (its USB drive should be showing). Copy the firmware file onto the drive; steps below.";
-    else if (d.fw) out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}.` + (d.family === "nrf52" ? " This is an nRF52 board: the page can configure it, but updating is drag-and-drop (steps below)." : "");
+    else if (d.fw) {
+      const current = await resolveFirmware();
+      const old = olderThan(d.fw, current);
+      out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}. `
+        + (old ? `Out of date: current is ${shortVer(current)}. Update it before configuring` : "Up to date.")
+        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " This is an nRF52 board; if it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase, flash & configure" installs the current firmware.' : ""));
+    }
     else if (d.family === "nrf52") out.textContent = `${d.name ?? "An nRF52 board"}, but Meshtastic didn't answer. Install the firmware with the steps below, then use "Configure only".`;
     else if (d.family === "esp32") out.textContent = "An ESP32 board with no Meshtastic answering (blank, or busy). Pick your exact board from the list; the USB id alone can't tell ESP32 boards apart.";
     else out.textContent = "Couldn't tell what this is. Pick your board from the list.";
@@ -510,15 +516,53 @@ async function connectMesh(timeoutMs = 30000) {
   dev.configure().catch(() => {});
   dev.setHeartbeatInterval(30000);
   const timedOut = await Promise.race([configured.then(() => false), sleep(timeoutMs).then(() => true)]);
-  if (timedOut) throw new Error("Node didn't finish the config handshake in time");
+  if (timedOut) {
+    // Let go of the port properly. Without this the streams stay locked, close() fails, and every retry
+    // dies with "The port is already open".
+    try { await withTimeout(dev.disconnect(), 3000, "disconnect"); } catch {}
+    try { await withTimeout(transport.disconnect(), 3000, "disconnect"); } catch {}
+    try { await port.close(); } catch {}
+    throw new Error("Node didn't finish the config handshake in time");
+  }
   return { dev, st };
 }
-async function connectWithRetry(tries = 6) {
+async function connectWithRetry(tries = 6, perTryMs = 30000) {
   for (let i = 1; i <= tries; i++) {
-    try { log(`Connecting to Meshtastic API (attempt ${i}/${tries})…`); return await connectMesh(); }
+    try { log(`Connecting to Meshtastic API (attempt ${i}/${tries})…`); await refreshPort(); return await connectMesh(perTryMs); }
     catch (e) { warn(e.message); try { await port?.close(); } catch {} if (i === tries) throw e; await sleep(5000); }
   }
 }
+
+// Boards with native USB (nRF52 such as the T-Echo, ESP32-S3 without a bridge chip) drop off USB when they
+// restart. Pick the same device up again from the ports this page was already allowed to use.
+let lastUsbKey = null;
+async function refreshPort() {
+  if (!port) return;
+  lastUsbKey = usbKey(port).key;
+  const ports = await navigator.serial.getPorts();
+  if (ports.includes(port) && port.connected !== false) return;
+  const back = ports.find((p) => usbKey(p).key === lastUsbKey && p.connected !== false);
+  if (back) { port = back; port.ondisconnect = () => warn("Serial port disconnected (normal during reboots on native-USB boards)."); }
+}
+// Call before sending the commit; await the returned function afterwards. It resolves once the radio has
+// restarted: either it dropped off USB and came back, or (bridge-chip boards) a fixed wait has passed.
+function watchReboot() {
+  const p = port, key = usbKey(p).key;
+  let dropped = false;
+  const gone = new Promise((res) => p?.addEventListener?.("disconnect", () => { dropped = true; res(); }, { once: true }));
+  return async () => {
+    await Promise.race([gone, sleep(6000)]);
+    if (!dropped) return;
+    log("Radio dropped off USB to restart; waiting for it to come back…");
+    for (let i = 0; i < 40; i++) {
+      await sleep(1000);
+      const back = (await navigator.serial.getPorts()).find((x) => usbKey(x).key === key && x.connected !== false);
+      if (back) { port = back; await sleep(3000); return; }
+    }
+    throw new Error("The radio didn't come back on USB after restarting. Unplug it, plug it back in, and press the button again to check.");
+  };
+}
+let rebootDone = null;
 const withTimeout = (p, ms, what) => Promise.race([p, sleep(ms).then(() => { throw new Error(`${what} timed out`); })]);
 const defined = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
@@ -603,6 +647,7 @@ async function pushConfig(s) {
   await send(`owner: "${s.longName}" / "${s.shortName}"`, () =>
     dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(me), longName: s.longName, shortName: s.shortName, isLicensed: false })));
 
+  rebootDone = watchReboot();
   await send("commit (node will reboot)", () => dev.commitEditSettings());
   ok("Settings committed. Node is rebooting.");
   try { await dev.disconnect(); } catch {}
@@ -610,8 +655,9 @@ async function pushConfig(s) {
 }
 
 async function verify(s) {
-  await sleep(4000);
-  const { dev, st } = await connectWithRetry(8);
+  await (rebootDone ? rebootDone() : sleep(4000));
+  rebootDone = null;
+  const { dev, st } = await connectWithRetry(8, 15000);
   const L = st.config.lora ?? {}, D = st.config.device ?? {}, P = st.config.position ?? {}, B = st.config.bluetooth ?? {}, N = st.config.network ?? {};
   const T = st.module.telemetry ?? {};
   const me = st.users[st.myNodeNum] ?? {};
@@ -659,7 +705,7 @@ async function run(kind) {
   const { s, problems } = readSettings();
   if (problems.length) { problems.forEach(err); return; }
   if (kind === "full" && detected?.family === "nrf52") {
-    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under Hardware), then press \"Configure only\".");
+    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under \"Your radio\"), then press \"Configure only\".");
     return;
   }
   $("fw-gate").hidden = true;
@@ -705,7 +751,7 @@ async function resetStart() {
     const d = identify(st);
     if (!d.fw) {
       out.textContent = d.family === "nrf52"
-        ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under Hardware."
+        ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under \"Your radio\"."
         : "Meshtastic isn't answering on this radio, so it can't be reset from here. \"Erase, flash & configure\" wipes it completely and installs fresh firmware.";
       return;
     }
@@ -830,11 +876,12 @@ async function famPush() {
       dev.setChannel(create(Protobuf.Channel.ChannelSchema, { index: idx, role: SECONDARY, settings: { name: fam.name, psk: fam.psk, moduleSettings: { positionPrecision: $("fam-pos").checked ? 32 : 0 } } })));
     if (longName) await send(`owner: "${longName}" / "${shortName}"`, () =>
       dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(st.users[st.myNodeNum] ?? {}), longName, shortName, isLicensed: false })));
+    const restarted = watchReboot();
     await send("commit", () => dev.commitEditSettings());
     try { await dev.disconnect(); } catch {}
     try { await port.close(); } catch {}
-    await sleep(4000);
-    const v = await connectWithRetry(8);
+    await restarted();
+    const v = await connectWithRetry(8, 15000);
     const got = v.st.channels[idx]?.settings;
     const good = got?.name === fam.name && bytesToB64(got.psk ?? new Uint8Array()) === bytesToB64(fam.psk);
     const pub = v.st.channels[0]?.settings;

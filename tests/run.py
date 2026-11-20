@@ -80,5 +80,7 @@ try:
     def j(pg): me(pg); pick(pg,"socal-mesh-longturbo")
     def j2(pg): print("gate:", pg.inner_text("#fw-gate-text"), "| anyway offered:", pg.is_visible("#btn-fw-anyway"))
     scenario("LongTurbo preset on 2.7.10: blocked, no Configure anyway", j, opts={"fw":"2.7.10.94d4bdf"}, after=j2)
+    def k(pg): me(pg, "Prairie 63", "PR63")
+    scenario("Native-USB radio (T-Echo style) drops off USB on reboot: verify still completes", k, opts={"pioEnv":"t-echo","hasWifi":False,"nativeUsb":True,"usb":{"usbVendorId":0x239a,"usbProductId":0x4405}})
 finally:
     srv.terminate()
