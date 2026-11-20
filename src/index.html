@@ -75,10 +75,12 @@
         <p>Channel <b id="fam-ready-name"></b> is ready to put on your radios.</p>
         <label class="inline"><input type="checkbox" id="fam-pos" checked> Share each radio's location on this channel</label>
         <div class="hint">On: people on this channel can see where each radio is. It does not change what the public channel shows.</div>
-        <details class="mini"><summary>Save this channel (link and QR code)</summary>
-          <p>Keep this somewhere safe, like a house key: anyone with it can read the channel. It is how a phone, or a radio you buy later, joins. Scan the code with the Meshtastic app, or open the link.</p>
+        <details class="mini"><summary>Save this channel (QR code to print)</summary>
+          <p>This code is the channel's key. Keep the printout somewhere safe, like a house key: anyone who scans it can read the channel. Don't photograph it into a chat or email. It is how a phone, or a radio you buy later, joins: scan it with the Meshtastic app.</p>
           <canvas id="fam-qr" width="10" height="10"></canvas>
-          <p><code class="hash" id="fam-link"></code></p>
+          <details class="mini"><summary>Show the key to type in by hand</summary>
+            <p>Name: <code id="fam-key-name"></code><br>Key: <code class="hash" id="fam-key"></code></p>
+          </details>
           <div class="buttons"><button type="button" class="small quiet" id="btn-fam-print">Print this page</button></div>
         </details>
       </div>

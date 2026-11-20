@@ -18,8 +18,8 @@ try:
     print("family page requests:", reqs, "| radio parts hidden:", pg.is_hidden("#btn-full"), pg.is_hidden("#longname"), "| family visible:", pg.is_visible("#btn-fam-push"))
     pg.click("#btn-fam-push"); pg.wait_for_timeout(200); print("push with no channel:", pg.inner_text("#log").strip()[-60:])
     pg.fill("#fam-name","SmithFam"); pg.click("#btn-fam-new")
-    link = pg.text_content("#fam-link"); key_before = link
-    print("created:", pg.inner_text("#fam-status"), "| link:", link[:44]+"…", "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
+    key_before = pg.text_content("#fam-key"); link = pg.evaluate("() => null")
+    print("created:", pg.inner_text("#fam-status"), "| key chars:", len(key_before), "| link shown anywhere:", "meshtastic.org/e/" in pg.content(), "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
     pg.fill("#fam-long","Dad"); pg.fill("#fam-short","DAD"); pg.click("#btn-fam-push")
     pg.wait_for_function("() => /radios? done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
     print(pg.inner_text("#log")); print("count:", pg.inner_text("#fam-count")); print("node:", json.dumps(pg.evaluate(NODE)))
@@ -28,10 +28,13 @@ try:
     print("after 2nd push chans:", json.dumps(pg.evaluate(NODE)["chans"]))
     # copy from a radio
     pg.click("[data-fam=read]"); pg.click("#btn-fam-read"); pg.wait_for_function("() => /Found|No named/.test(document.querySelector('#fam-status').textContent)", timeout=60000)
-    print("read:", pg.inner_text("#fam-status"), "| same link as created:", pg.text_content("#fam-link") == key_before)
+    print("read:", pg.inner_text("#fam-status"), "| same link as created:", pg.text_content("#fam-key") == key_before)
     # paste a link
+    link = "https://meshtastic.org/e/?add=true#" + pg.evaluate("""(k) => { const name = new TextEncoder().encode('SmithFam'); const psk = Uint8Array.from(atob(k), c => c.charCodeAt(0));
+      const inner = [0x12, psk.length, ...psk, 0x1a, name.length, ...name]; const outer = [0x0a, inner.length, ...inner];
+      return btoa(String.fromCharCode(...outer)).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'') }""", key_before)
     pg.click("[data-fam=paste]"); pg.fill("#fam-url", link); pg.click("#btn-fam-paste")
-    print("paste:", pg.inner_text("#fam-status"), "| same link:", pg.text_content("#fam-link") == key_before)
+    print("paste:", pg.inner_text("#fam-status"), "| same link:", pg.text_content("#fam-key") == key_before)
     pg.locator("section[data-only=family]").first.screenshot(path="/tmp/family.png")
     print("pageerrors:", errs, "csp:", csp, "external:", [u for u in reqs if u.startswith("http")])
     b.close()

@@ -703,7 +703,8 @@ function famRender() {
   if (!fam) return;
   $("fam-ready-name").textContent = fam.name;
   const link = famLink();
-  $("fam-link").textContent = link;
+  $("fam-key-name").textContent = fam.name;
+  $("fam-key").textContent = bytesToB64(fam.psk);
   const q = qrcode(0, "M"); q.addData(link); q.make();
   const n = q.getModuleCount(), scale = 5, pad = 4, cv = $("fam-qr");
   cv.width = cv.height = (n + pad * 2) * scale;
@@ -725,7 +726,7 @@ function famNew() {
   if (!name || new TextEncoder().encode(name).length > 11) { $("fam-status").textContent = "Give the channel a name of 1 to 11 characters."; return; }
   fam = { name, psk: crypto.getRandomValues(new Uint8Array(32)) };
   $("fam-pick-row").hidden = true;
-  $("fam-status").textContent = `Created "${name}" with a new random key. Save the link or QR code below before closing this tab.`;
+  $("fam-status").textContent = `Created "${name}" with a new random key. Print the QR code below before closing this tab, or keep one radio that has the channel.`;
   famRender();
 }
 async function famRead() {

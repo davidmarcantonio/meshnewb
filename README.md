@@ -6,7 +6,7 @@ Live at https://mesh.marcantonio.me:
 
 - `/` picks what to do. It runs no scripts.
 - `/radio/` flashes and configures one radio.
-- `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page shows it as a link and QR code to save. A radio that already has the channel can be read to set up another.
+- `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page shows it as a QR code to print (no link is displayed). A radio that already has the channel can be read to set up another.
 
 All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
