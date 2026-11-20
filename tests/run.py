@@ -82,5 +82,10 @@ try:
     scenario("LongTurbo preset on 2.7.10: blocked, no Configure anyway", j, opts={"fw":"2.7.10.94d4bdf"}, after=j2)
     def k(pg): me(pg, "Prairie 63", "PR63")
     scenario("Native-USB radio (T-Echo style) drops off USB on reboot: verify still completes", k, opts={"pioEnv":"t-echo","hasWifi":False,"nativeUsb":True,"usb":{"usbVendorId":0x239a,"usbProductId":0x4405}})
+    def l(pg): me(pg, "Prairie 63", "PR63")
+    def l2(pg): print("nonce asked:", pg.evaluate("() => window.__fakeNode.lastNonce"))
+    scenario("Radio that knows 300 others (busy mesh): config-only handshake connects at once", l, opts={"bigNodeDb":True}, after=l2)
+    def m(pg): me(pg)
+    scenario("Radio that opens the port but says nothing: clear message", m, opts={"mute":True})
 finally:
     srv.terminate()
