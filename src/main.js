@@ -1060,6 +1060,72 @@ function famBoot() {
   $("fam-pos").onchange = famRender;
 }
 
+// ---------- see how a radio is set (/check/) ----------
+// Read-only. Connects, reads what the handshake reports, disconnects. No admin message is ever sent from here.
+// Everything from the radio goes on the page as text, never as markup.
+const el = (tag, text, cls) => { const e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; };
+function checkRender(s) {
+  const out = $("check-out"), flags = $("check-flags");
+  if (s.flags.length) {
+    const ul = el("ul");
+    for (const f of s.flags) {
+      const li = el("li"); li.append(el("span", "! ", "warn"), f.text);
+      if (f.href) { const a = el("a", "Set up a radio"); a.href = f.href; li.append(" ", a); }
+      ul.append(li);
+    }
+    flags.replaceChildren(el("b", "Worth a look"), ul);
+  }
+  flags.hidden = !s.flags.length;
+  const table = (cls, head, rows) => {
+    const t = el("table", null, cls), body = el("tbody");
+    if (head) { const tr = el("tr"); head.forEach((h) => tr.append(el("th", h))); const th = el("thead"); th.append(tr); t.append(th); }
+    for (const r of rows) { const tr = el("tr"); r.forEach((c) => tr.append(el("td", c))); body.append(tr); }
+    t.append(body); return t;
+  };
+  const parts = [];
+  for (const sec of s.sections) {
+    parts.push(el("h3", sec.title), table("kv", null, sec.rows));
+    if (sec.title === "Radio") parts.push(el("h3", "Channels"), s.channels.length
+      ? table("", ["Slot", "Name", "Type", "Key", "Location shared", "Sent to MQTT"], s.channels.map((c) => [c.slot, c.name, c.kind, c.key, c.location, c.uplink]))
+      : el("p", "The radio reported no channels.", "hint"));
+  }
+  out.replaceChildren(...parts);
+}
+async function checkRun() {
+  const status = $("check-status");
+  if (!("serial" in navigator)) { status.textContent = "This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera."; return; }
+  busy(true);
+  $("check-out").replaceChildren(); $("check-flags").replaceChildren(); $("check-flags").hidden = true;
+  let dev = null;
+  try {
+    await pickPort();
+    if (NRF_UPDATE_MODE.has(usbKey(port).key)) {
+      status.textContent = "This is an nRF52 board in update mode (its USB drive is showing), so its settings can't be read. Press its reset button once to start Meshtastic, then press the button again.";
+      return;
+    }
+    status.textContent = "Reading the radio…";
+    let st;
+    try { ({ dev, st } = await connectMesh(12000)); }
+    catch (e) {
+      const d = identify(null);
+      const what = d.family === "nrf52" ? `${d.name ?? "an nRF52 board"}` : d.family === "esp32" ? "an ESP32 board" : "a USB device";
+      status.textContent = `There is nothing to read: this looks like ${what}, but Meshtastic didn't answer. It may be blank, still starting up, or in use by another app or tab. `
+        + "If it is new, install Meshtastic with \"Set up a radio\" on the home page.";
+      return;
+    }
+    const d = identify(st);
+    const summary = summarize(st, { boardName: d.name, family: d.family, currentFw: await resolveFirmware() });
+    checkRender(summary);
+    status.textContent = `Read at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Nothing was changed.`;
+  } catch (e) {
+    status.textContent = e.name === "NotFoundError" ? "No device picked. If yours wasn't listed, try another USB cable: charge-only cables are the usual cause." : `Couldn't read the radio: ${e.message}`;
+  } finally {
+    if (dev) { try { await dev.disconnect(); } catch {} }
+    try { await port?.close(); } catch {}
+    busy(false);
+  }
+}
+
 // ---------- browser check ----------
 function browserCheck() {
   const el = $("browser-check");
@@ -1119,6 +1185,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-reset").onclick = resetStart;
   $("btn-reset-go").onclick = resetArm;
   $("btn-reset-cancel").onclick = resetCancel;
-  if (document.body.dataset.page !== "family") loadPresetIndex();
+  $("btn-check").onclick = checkRun;
+  if (document.body.dataset.page === "radio") loadPresetIndex();
   browserCheck();
 });

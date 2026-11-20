@@ -87,13 +87,13 @@ const vars = {
   PRESETS_REPO, PRESETS_COMMIT: presetsCommit, PRESETS_COMMIT_SHORT: presetsCommit.slice(0, 7), PRESETS_DATE: presetsDate,
   PRESETS_COUNT: String(index.communities.length),
 };
-// Three pages from two templates: the picker at /, and the app template rendered as /radio/ and /family/.
+// Four pages from two templates: the picker at /, and the app template rendered as /radio/, /family/ and /check/.
 const render = (file, extra) => readFileSync(file, "utf8").replace(/\{\{(\w+)\}\}/g, (m, k) => {
   const v = { ...vars, ...extra }; if (!(k in v)) throw new Error(`unknown placeholder ${m}`); return v[k];
 });
-const PAGES = ["index.html", "radio/index.html", "family/index.html"];
+const PAGES = ["index.html", "radio/index.html", "family/index.html", "check/index.html"];
 writeFileSync(`${out}/index.html`, render("src/home.html", {}));
-for (const page of ["radio", "family"]) {
+for (const page of ["radio", "family", "check"]) {
   mkdirSync(`${out}/${page}`, { recursive: true });
   writeFileSync(`${out}/${page}/index.html`, render("src/index.html", { PAGE: page, ROOT: "../" }));
 }

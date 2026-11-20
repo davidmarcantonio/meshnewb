@@ -2,17 +2,19 @@ import { Protobuf } from "@meshtastic/core";
 import { create, toBinary, fromBinary } from "@bufbuild/protobuf";
 const M = Protobuf.Mesh, A = Protobuf.Admin, C = Protobuf.Config, P = Protobuf.Portnums.PortNum;
 const NUM = 0x1a2b3c4d;
+const O = window.__fakeOpts ?? {};
 const node = {
-  user: create(M.UserSchema, { id: "!1a2b3c4d", longName: "Meshtastic 3c4d", shortName: "3c4d", publicKey: new Uint8Array(32).fill(7) }),
+  user: create(M.UserSchema, { id: "!1a2b3c4d", longName: "Meshtastic 3c4d", shortName: "3c4d", publicKey: new Uint8Array(32).fill(7), ...(O.user ?? {}) }),
   config: {
     device: create(C.Config_DeviceConfigSchema, { role: 0, nodeInfoBroadcastSecs: 10800 }),
     lora: create(C.Config_LoRaConfigSchema, { usePreset: true, region: 0, modemPreset: 0, hopLimit: 3, txEnabled: true, txPower: 0, ...(window.__fakeOpts?.lora ?? {}) }),
-    bluetooth: create(C.Config_BluetoothConfigSchema, { enabled: true, mode: 0, fixedPin: 123456 }),
-    network: create(C.Config_NetworkConfigSchema, { wifiEnabled: false, ntpServer: "meshtastic.pool.ntp.org" }),
+    bluetooth: create(C.Config_BluetoothConfigSchema, { enabled: true, mode: 0, fixedPin: 123456, ...(O.bluetooth ?? {}) }),
+    network: create(C.Config_NetworkConfigSchema, { wifiEnabled: false, ntpServer: "meshtastic.pool.ntp.org", ...(O.network ?? {}) }),
     position: create(C.Config_PositionConfigSchema, { positionBroadcastSecs: 900, positionBroadcastSmartEnabled: true, gpsUpdateInterval: 120 }),
   },
-  module: { telemetry: create(Protobuf.ModuleConfig.ModuleConfig_TelemetryConfigSchema, { deviceUpdateInterval: 1800, environmentUpdateInterval: 1800 }) },
-  channels: { 0: create(Protobuf.Channel.ChannelSchema, { index: 0, role: 1, settings: { psk: new Uint8Array([1]) } }) },
+  module: { ...(O.mqtt ? { mqtt: create(Protobuf.ModuleConfig.ModuleConfig_MQTTConfigSchema, O.mqtt) } : {}), telemetry: create(Protobuf.ModuleConfig.ModuleConfig_TelemetryConfigSchema, { deviceUpdateInterval: 1800, environmentUpdateInterval: 1800 }) },
+  // Extra channels for tests: [{ index, role, name, psk: [bytes], uplinkEnabled, positionPrecision }]
+  channels: Object.fromEntries([{ index: 0, role: 1, psk: [1] }, ...(O.channels ?? [])].map((c) => [c.index, create(Protobuf.Channel.ChannelSchema, { index: c.index, role: c.role, settings: { name: c.name ?? "", psk: new Uint8Array(c.psk ?? []), uplinkEnabled: !!c.uplinkEnabled, ...(c.positionPrecision != null ? { moduleSettings: { positionPrecision: c.positionPrecision } } : {}) } })])),
   commits: 0, adminLog: [], rebootCount: 7,
 };
 window.__fakeNode = node;
@@ -100,4 +102,4 @@ function handle(msg, push) {
   }
 }
 const port = new FakePort();
-Object.defineProperty(navigator, "serial", { value: { requestPort: async () => port, getPorts: async () => [port], addEventListener() {} } });
+Object.defineProperty(navigator, "serial", { value: { requestPort: async () => { if (O.noPick) throw new DOMException("No port selected by the user.", "NotFoundError"); return port; }, getPorts: async () => [port], addEventListener() {} } });

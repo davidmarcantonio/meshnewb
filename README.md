@@ -7,6 +7,7 @@ Live at https://mesh.marcantonio.me:
 - `/` picks what to do. It runs no scripts.
 - `/radio/` flashes and configures one radio.
 - `/family/` gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page offers a one-time QR code to print when the channel is created, and never shows the key again (no link is displayed or accepted). A radio that already has the channel can be read to set up another.
+- `/check/` reads a plugged-in radio and shows how it is set: board, firmware (and whether it is out of date), region and preset, channels, Bluetooth, WiFi, MQTT. It is read-only and sends the radio no settings. Channel keys, WiFi passwords, Bluetooth PINs and admin keys are never displayed, only whether one is set.
 
 All three are built from one commit and share `app.js`. Unofficial. Not affiliated with Meshtastic LLC.
 
