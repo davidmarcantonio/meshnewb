@@ -17,6 +17,8 @@
   <div class="hint"><a href="{{ROOT}}">&larr; MeshNewb home</a></div>
   <h1 data-only="family">MeshNewb<span class="dot">.</span> set up a family or group channel</h1>
   <p data-only="family">Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else.</p>
+  <h1 data-only="check">MeshNewb<span class="dot">.</span> see how a radio is set</h1>
+  <p data-only="check">Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
   <h1 data-only="radio">MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
   <p data-only="radio">Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
   <div class="fw" data-only="radio">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
@@ -28,7 +30,7 @@
   <ul class="plain">
     <li>No accounts, cookies, analytics or trackers.</li>
     <li>Your name, PIN, WiFi password and keys go from this tab to your radio over USB. Nothing is sent to us or stored.</li>
-    <li>The only outside requests are to Meshtastic's own servers, and only when you press Flash.</li>
+    <li>The only outside requests are to Meshtastic's own servers: to look up the current firmware version, and to download the firmware when you flash. Nothing about you or your radio is sent.</li>
   </ul>
 </section>
 
@@ -46,6 +48,15 @@
 </section>
 
 <main>
+    <!-- ===== See how a radio is set (check page only). Read-only: this panel never writes to the radio. ===== -->
+    <section class="panel" data-only="check">
+      <h2><span><span class="n">01</span>Read the radio</span><small>looks, doesn't touch</small></h2>
+      <p class="hint">The radio must be running Meshtastic. Keys, passwords and PINs are never shown: you see whether one is set, not what it is.</p>
+      <div class="buttons"><button type="button" class="act primary" id="btn-check">Read my radio</button></div>
+      <div class="hint" id="check-status" role="status"></div>
+      <div class="card" id="check-flags" hidden></div>
+      <div id="check-out"></div>
+    </section>
     <!-- ===== Family / group channel (family page only) ===== -->
     <section class="panel" data-only="family">
       <h2><span><span class="n">01</span>The channel</span><small>do this once</small></h2>
@@ -260,7 +271,7 @@
     </section>
 
 
-    <section class="panel">
+    <section class="panel" data-only="radio family">
       <h2 data-only="radio"><span><span class="n">04</span>Go</span></h2>
       <h2 data-only="family"><span><span class="n">03</span>Progress</span></h2>
       <ol class="steps" data-only="radio">

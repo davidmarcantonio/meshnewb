@@ -134,8 +134,14 @@ details.mini p { font-size: 13px; color: var(--text-2); margin: 6px 0; }
 details.mini b { color: var(--text); font-weight: 500; }
 label.inline .hint { display: inline; margin: 0; }
 
-/* One template, two pages: /radio/ and /family/. Each hides the other's parts. */
-body[data-page="radio"] [data-only="family"], body[data-page="family"] [data-only="radio"] { display: none; }
+/* One template, three pages: /radio/, /family/ and /check/. Each hides the parts that don't name it. */
+body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="family"] [data-only]:not([data-only~="family"]), body[data-page="check"] [data-only]:not([data-only~="check"]) { display: none; }
+#check-flags ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--text); }
+#check-flags li { margin: 6px 0; }
+#check-out h3 { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 4px; }
+#check-out td, #check-out th { text-align: left; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+#check-out th { font-weight: 500; color: var(--muted); font-size: 12px; }
+#check-out table.kv td:first-child { color: var(--muted); width: 38%; }
 #fam-qr { background: #fff; border-radius: 6px; margin-top: 8px; image-rendering: pixelated; }
 .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 14px; }
 a.choice { display: block; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; background: var(--surface); color: var(--text); text-decoration: none; }
