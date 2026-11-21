@@ -5,24 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://api.meshtastic.org https://release.meshtastic.org; base-uri 'none'; form-action 'none'; manifest-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="description" content="MeshNewb: flash and configure a Meshtastic node from your browser, with community presets for meshes across the United States. No cookies, no analytics, open source.">
-<title>MeshNewb — set up a Meshtastic node from your browser</title>
+<meta name="description" content="MeshNewb: set up a Meshtastic radio, give your family a private channel, or see how a radio is set, from your browser. Community presets for meshes across the United States. No cookies, no analytics, open source.">
+<title>MeshNewb — get your Meshtastic radios talking, from your browser</title>
 <link rel="stylesheet" href="{{ROOT}}app.css" integrity="{{CSS_SRI}}">
 <script type="module" src="{{ROOT}}app.js" integrity="{{APP_SRI}}"></script>
 </head>
 <body data-page="{{PAGE}}">
 <div class="wrap">
 <header class="site">
-  <div class="eyebrow">Meshtastic · Web Serial</div>
-  <div class="hint"><a href="{{ROOT}}">&larr; MeshNewb home</a></div>
-  <h1 data-only="family">MeshNewb<span class="dot">.</span> set up a family or group channel</h1>
-  <p data-only="family">Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else.</p>
-  <h1 data-only="check">MeshNewb<span class="dot">.</span> see how a radio is set</h1>
-  <p data-only="check">Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
-  <h1 data-only="radio">MeshNewb<span class="dot">.</span> set up a Meshtastic node</h1>
-  <p data-only="radio">Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
-  <div class="fw" data-only="radio">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
-  <div class="hint" data-only="radio">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</div>
+  <div class="eyebrow">Meshtastic · from your browser</div>
+  <h1>MeshNewb<span class="dot">.</span> get your radios talking</h1>
+  <p>Meshtastic radios send text messages to each other with no cell service and no internet. This page sets them up over a USB cable. Pick what you want to do.</p>
+  <!-- One page, three tabs. A tab only changes which parts show (body data-page); nothing is read from the address. -->
+  <div class="pagetabs" role="tablist" aria-label="What do you want to do?">
+    <button type="button" role="tab" data-tab="radio"><b>Set up a radio</b><span>Firmware plus the right settings</span></button>
+    <button type="button" role="tab" data-tab="family"><b>Family or group channel</b><span>One private channel, several radios</span></button>
+    <button type="button" role="tab" data-tab="check"><b>See how a radio is set</b><span>Look at its settings, change nothing</span></button>
+  </div>
+  <div class="tabintro">
+    <p data-only="radio"><b>Set up a radio.</b> For a new radio, or one that needs the right settings for your area. Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+    <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
+    <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
+    <div class="fw" data-only="radio">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
+    <div class="hint" data-only="radio">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</div>
+  </div>
 </header>
 
 <section class="panel prereq privacy-teaser">
@@ -60,7 +66,7 @@
     <!-- ===== Family / group channel (family page only) ===== -->
     <section class="panel" data-only="family">
       <h2><span><span class="n">01</span>The channel</span><small>do this once</small></h2>
-      <p class="hint">Each radio should already be set up for your area (<a href="{{ROOT}}radio/">Set up a radio</a>). This page adds a private channel beside the public one, so the radio stays on the local mesh and can still relay through neighbours.</p>
+      <p class="hint">Each radio should already be set up for your area (<a href="{{ROOT}}radio/" data-goto="radio">Set up a radio</a>). This page adds a private channel beside the public one, so the radio stays on the local mesh and can still relay through neighbours.</p>
       <div class="tabs"><button type="button" data-fam="new" class="on">Create a new channel</button><button type="button" data-fam="read">Copy from a radio that has it</button></div>
       <div id="fam-new">
         <label for="fam-name">Channel name <span class="req">*</span></label>

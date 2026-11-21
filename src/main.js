@@ -29,7 +29,8 @@ const ok = (m) => log("✔ " + m, "ok");
 const warn = (m) => log("! " + m, "warn");
 const err = (m) => log("✘ " + m, "err");
 const setStep = (n, state) => { const el = document.querySelector(`[data-step="${n}"]`); if (el) el.dataset.state = state; };
-const busy = (on) => document.querySelectorAll("button.act").forEach((b) => (b.disabled = on));
+// While the page is talking to a radio, the action buttons and the tabs are locked.
+const busy = (on) => document.querySelectorAll("button.act, .pagetabs button").forEach((b) => (b.disabled = on));
 
 function opt(sel, value, text, selected) {
   const o = document.createElement("option");
@@ -103,13 +104,15 @@ function setMode(m) {
 // Data files under presets/ on this same host (copied from the presets repo at build time). Nothing here is bundled
 // into app.js. `index` lists every community; a community's own file is fetched when it is picked.
 const SAME_ORIGIN = { referrerPolicy: "no-referrer", credentials: "omit" };
+// app.js sits at the site root, so its own address is the root whichever page loaded it.
+const SITE = new URL(".", import.meta.url);
 let presetIndex = null;          // presets/index.json
 let community = null;            // the selected community's full file, or null
 const communityCache = new Map();
 
 async function loadPresetIndex() {
   try {
-    const r = await fetch("../presets/index.json", SAME_ORIGIN);
+    const r = await fetch(new URL("presets/index.json", SITE), SAME_ORIGIN);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     presetIndex = await r.json();
   } catch (e) {
@@ -149,7 +152,7 @@ async function pickCommunity() {
   if (!entry) return;
   try {
     if (!communityCache.has(id)) {
-      const r = await fetch(`../presets/${entry.path}`, SAME_ORIGIN);
+      const r = await fetch(new URL(`presets/${entry.path}`, SITE), SAME_ORIGIN);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       communityCache.set(id, await r.json());
     }
@@ -1070,7 +1073,7 @@ function checkRender(s) {
     const ul = el("ul");
     for (const f of s.flags) {
       const li = el("li"); li.append(el("span", "! ", "warn"), f.text);
-      if (f.href) { const a = el("a", "Set up a radio"); a.href = f.href; li.append(" ", a); }
+      if (f.href) { const a = el("a", "Set up a radio"); a.href = f.href; a.onclick = (e) => { e.preventDefault(); showPage("radio"); }; li.append(" ", a); }
       ul.append(li);
     }
     flags.replaceChildren(el("b", "Worth a look"), ul);
@@ -1122,7 +1125,7 @@ async function checkRun() {
       const d = identify(null);
       const what = d.family === "nrf52" ? `${d.name ?? "an nRF52 board"}` : d.family === "esp32" ? "an ESP32 board" : "a USB device";
       status.textContent = `There is nothing to read: this looks like ${what}, but Meshtastic didn't answer. It may be blank, still starting up, or in use by another app or tab. `
-        + "If it is new, install Meshtastic with \"Set up a radio\" on the home page.";
+        + "If it is new, install Meshtastic in the \"Set up a radio\" tab.";
       return;
     }
     const d = identify(st);
@@ -1137,6 +1140,17 @@ async function checkRun() {
     try { await port?.close(); } catch {}
     busy(false);
   }
+}
+
+// ---------- tabs ----------
+// The page's three jobs are tabs. Which one shows is body[data-page]; app.css hides every part that doesn't name it.
+// The starting tab is baked into the HTML at build time (/ and /radio/, /family/, /check/); nothing is read from the address.
+let presetsAsked = false;
+function showPage(name) {
+  if (!["radio", "family", "check"].includes(name)) return;
+  document.body.dataset.page = name;
+  document.querySelectorAll(".pagetabs button").forEach((t) => { const on = t.dataset.tab === name; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
+  if (name === "radio" && !presetsAsked) { presetsAsked = true; loadPresetIndex(); }
 }
 
 // ---------- browser check ----------
@@ -1199,6 +1213,12 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-reset-go").onclick = resetArm;
   $("btn-reset-cancel").onclick = resetCancel;
   $("btn-check").onclick = checkRun;
-  if (document.body.dataset.page === "radio") loadPresetIndex();
+  const tabs = [...document.querySelectorAll(".pagetabs button")];
+  tabs.forEach((t, i) => {
+    t.onclick = () => showPage(t.dataset.tab);
+    t.onkeydown = (e) => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); showPage(n.dataset.tab); } };
+  });
+  document.querySelectorAll("[data-goto]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); showPage(a.dataset.goto); }));
+  showPage(document.body.dataset.page);
   browserCheck();
 });
