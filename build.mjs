@@ -39,6 +39,8 @@ for (const [pkg, file] of [
   ["@fontsource/inter", "inter-latin-500-normal.woff2"],
   ["@fontsource/jetbrains-mono", "jetbrains-mono-latin-400-normal.woff2"],
 ]) copyFileSync(`node_modules/${pkg}/files/${file}`, `${out}/fonts/${file}`);
+// The "M-Powered" community badge, byte-for-byte from github.com/meshtastic/design ("Meshtastic Powered Logo").
+copyFileSync("assets/m-powered.svg", `${out}/m-powered.svg`);
 
 // The checked-out commit, not GITHUB_SHA: the daily presets refresh rebuilds the already-deployed app commit.
 const git = (cwd, args) => execSync(`git ${args}`, { cwd, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
@@ -104,6 +106,6 @@ const manifest = {
   commit, repo, files: {},
   presets: { repo: PRESETS_REPO, commit: presetsCommit, date: presetsDate, count: index.communities.length, files: presetFiles },
 };
-for (const f of [...PAGES, "app.js", "app.css"]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
+for (const f of [...PAGES, "app.js", "app.css", "m-powered.svg"]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
 writeFileSync(`${out}/build.json`, JSON.stringify(manifest, null, 2) + "\n");
 console.log(`app.js ${js.length} bytes  sha256 ${vars.APP_SHA256}\ncommit ${commit}\npresets ${index.communities.length} communities, ${PRESETS_REPO} @ ${presetsCommit} (${presetsDate})`);
