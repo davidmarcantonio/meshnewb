@@ -20,7 +20,7 @@ try:
       pg.ext = []; pg.on("request", lambda r: r.url.startswith(URL) or pg.ext.append(r.url))
       pg.route("https://api.meshtastic.org/github/firmware/list", lambda r: r.fulfill(json={"releases": {"stable": [{"id": "v" + api_fw}]}}))
       if opts is not None: pg.add_init_script("window.__fakeOpts = " + json.dumps(opts))
-      pg.add_init_script(fake); pg.goto(URL + path); pg.wait_for_timeout(400)
+      pg.add_init_script(fake); pg.goto(URL + path); pg.wait_for_selector(".pagetabs [aria-selected=true]"); pg.wait_for_timeout(300)
       return pg
     def read(pg, pattern, timeout=30000):
       pg.click("#btn-check")
@@ -28,18 +28,49 @@ try:
       return pg.inner_text("#check-status")
     DONE = "Nothing was changed"
 
-    # picker: third card, still no scripts
-    pg = b.new_page(); pg.goto(URL + "/"); pg.wait_for_timeout(300)
-    links = [a.get_attribute("href") for a in pg.locator("a.choice").all()]
-    assert links == ["radio/", "family/", "check/"], links
-    assert pg.locator("script").count() == 0
-    print("picker links:", links)
+    # one page, three tabs. The home page opens on "Set up a radio"; a tab click swaps the parts in place.
+    sel = lambda pg: [t.get_attribute("aria-selected") for t in pg.locator(".pagetabs button").all()]
+    pg = page({}, "/")
+    assert [t.get_attribute("data-tab") for t in pg.locator(".pagetabs button").all()] == ["radio", "family", "check"]
+    assert sel(pg) == ["true", "false", "false"] and pg.is_visible("#btn-full") and pg.is_hidden("#btn-check")
+    assert pg.locator("header.site h1:visible").count() == 1 and "get your radios talking" in pg.inner_text("header.site h1:visible")
+    assert pg.locator("a.choice").count() == 0 and "MeshNewb home" not in pg.inner_text("body")
+    pg.wait_for_function("() => document.querySelector('#state').options.length > 1", timeout=5000)   # community list loads from the home page
+    assert "Set up a radio." in pg.inner_text(".tabintro")
+    pg.click(".pagetabs [data-tab=check]")
+    assert sel(pg) == ["false", "false", "true"] and pg.is_visible("#btn-check") and pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-push")
+    assert "See how a radio is set." in pg.inner_text(".tabintro") and "Set up a radio." not in pg.inner_text(".tabintro")
+    pg.click(".pagetabs [data-tab=family]")
+    assert sel(pg) == ["false", "true", "false"] and pg.is_visible("#btn-fam-push") and pg.is_hidden("#btn-check")
+    pg.focus(".pagetabs [data-tab=family]"); pg.keyboard.press("ArrowRight")
+    assert sel(pg) == ["false", "false", "true"], "arrow keys move between tabs"
+    assert pg.errs == [] and pg.csp == [] and pg.ext == [], (pg.errs, pg.csp, pg.ext)
+    # old addresses still work and open on their own tab
+    for path, want in [("/radio/", ["true", "false", "false"]), ("/family/", ["false", "true", "false"]), ("/check/", ["false", "false", "true"])]:
+      assert sel(page({}, path)) == want, path
+    # a tab choice never comes from the address
+    assert sel(page({}, "/?tab=check#check")) == ["true", "false", "false"]
+    # the column sits in the middle of a wide window, and the tabs line up with the panels
+    wide = b.new_page(viewport={"width": 1800, "height": 900}); wide.goto(URL + "/"); wide.wait_for_timeout(300)
+    box = wide.evaluate("() => ['.pagetabs', 'main', '#prereq'].map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.left), Math.round(innerWidth - r.right)]; })")
+    assert all(abs(l - r) <= 1 for l, r in box) and len({tuple(x) for x in box}) == 1 and box[0][0] > 300, box
+    # reading a radio from the Check tab, then switching: the community list still loads, and the fix-it link stays on this page
+    pg = page({**SETUP, "fw": "2.7.10.abc"}, "/check/"); read(pg, DONE)
+    pg.click("#check-flags a"); pg.wait_for_timeout(200)
+    assert pg.url == URL + "/check/" and sel(pg) == ["true", "false", "false"] and pg.is_visible("#btn-full")
+    pg.wait_for_function("() => document.querySelector('#state').options.length > 1", timeout=5000)
+    # tabs are locked while the page is talking to a radio
+    pg = page({**SETUP, "slowFirstMs": 14000}, "/check/"); pg.click("#btn-check"); pg.wait_for_timeout(1500)
+    assert all(t.is_disabled() for t in pg.locator(".pagetabs button").all()), "tabs should be locked mid-read"
+    pg.wait_for_function("() => /Nothing was changed/.test(document.querySelector('#check-status').textContent)", timeout=45000)
+    assert all(t.is_enabled() for t in pg.locator(".pagetabs button").all())
+    print("tabs: all passed")
 
     # the page shows only its own parts
     pg = page(SETUP)
     assert pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-push") and pg.is_hidden("#longname") and pg.is_hidden("#log"), "other pages' parts are showing"
     assert pg.is_visible("#btn-check") and pg.inner_text("#check-out") == ""
-    assert "see how a radio is set" in pg.inner_text("header.site h1:visible")
+    assert "See how a radio is set." in pg.inner_text(".tabintro")
     # the page is honest about what leaves the tab: the settings don't, one version lookup does
     head = pg.inner_text("header.site"); teaser = pg.inner_text(".privacy-teaser")
     assert "nothing leaves this tab" not in head and "current firmware version" in head, head
