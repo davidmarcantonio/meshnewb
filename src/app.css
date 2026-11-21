@@ -109,6 +109,8 @@ footer.site { color: var(--muted); font-size: 12px; padding-bottom: 28px; }
 footer.site p { margin: 4px 0; max-width: 100ch; }
 footer.site code { font-family: var(--mono); color: var(--text-2); font-size: 11.5px; }
 footer.site code.hash { word-break: break-all; }
+footer.site .mark { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+footer.site .mark img { display: block; height: 44px; width: auto; }
 
 .checklist { margin: 4px 0 0; padding-left: 20px; color: var(--text-2); font-size: 14px; }
 .checklist li { margin: 8px 0; }

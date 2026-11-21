@@ -129,6 +129,19 @@ try:
     for path in ["/radio/", "/family/"]:
       pg = page({}, path); assert pg.is_hidden("#btn-check"), path
       assert pg.errs == [], pg.errs
+    # footer on every page: the M-Powered badge (Meshtastic's own file, unaltered) linked to meshtastic.org, and the trademark line
+    import hashlib
+    src = hashlib.sha256(open("assets/m-powered.svg", "rb").read()).hexdigest()
+    assert src == "298baec165feb7576bb26bcf9c45d6882e9a6d76731b2f71de6d43ae1708ddca", "assets/m-powered.svg differs from Meshtastic's published file"
+    assert hashlib.sha256(open("dist/m-powered.svg", "rb").read()).hexdigest() == src
+    for path in ["/", "/radio/", "/family/", "/check/"]:
+      pg = page({}, path)
+      a = pg.locator("footer.site a.badge")
+      assert a.get_attribute("href") == "https://meshtastic.org/", path
+      assert pg.evaluate("() => { const i = document.querySelector('footer.site a.badge img'); return i.complete && i.naturalWidth > 0 && i.alt; }") == "Powered by Meshtastic", path
+      foot = pg.inner_text("footer.site")
+      assert "Meshtastic\u00ae is a registered trademark of Meshtastic LLC." in foot and "not affiliated with or endorsed by" in foot, foot
+      assert pg.csp == [] and pg.ext == [], (path, pg.csp, pg.ext)
     print("check page: all passed")
     b.close()
 finally:

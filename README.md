@@ -101,3 +101,7 @@ PRESETS_COMMIT=<sha> npm run build
 ## License
 
 GPL-3.0-only, because the bundled `@meshtastic/core` is GPL-3.0-only. `esptool-js` and `@bufbuild/protobuf` are Apache-2.0. Inter and JetBrains Mono are OFL-1.1.
+
+## Meshtastic marks
+
+The footer badge (`assets/m-powered.svg`) is Meshtastic's "M-Powered" community project logo, copied unaltered from [meshtastic/design](https://github.com/meshtastic/design/tree/master/Meshtastic%20Powered%20Logo) (commit 8ad6621) and used under their [trademark policy](https://meshtastic.org/docs/legal/licensing-and-trademark/), which allows it for projects that work with Meshtastic without a trademark grant. It is not covered by this repo's license. Meshtastic&reg; is a registered trademark of Meshtastic LLC. This site is not affiliated with or endorsed by the Meshtastic project.
