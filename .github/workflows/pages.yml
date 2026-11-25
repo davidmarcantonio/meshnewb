@@ -95,10 +95,15 @@ jobs:
           subject-path: |
             dist/index.html
             dist/radio/index.html
+            dist/join/index.html
             dist/family/index.html
             dist/check/index.html
             dist/app.js
             dist/app.css
+            dist/og.png
+            dist/favicon.ico
+            dist/favicon.svg
+            dist/apple-touch-icon.png
             dist/build.json
             dist/presets/index.json
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5

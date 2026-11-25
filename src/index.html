@@ -7,6 +7,28 @@
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="MeshNewb: set up a Meshtastic radio, give your family a private channel, or see how a radio is set, from your browser. Community presets for meshes across the United States. No cookies, no analytics, open source.">
 <title>MeshNewb — get your Meshtastic radios talking, from your browser</title>
+<link rel="canonical" href="{{SITE}}/">
+<meta name="theme-color" content="#161826">
+<!-- Link previews (iMessage, Slack, Discord, Signal, LinkedIn, Facebook, Mastodon, X). Previews are fetched by those services, not by this page; the image is a file on this site. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MeshNewb">
+<meta property="og:url" content="{{SITE}}/">
+<meta property="og:title" content="MeshNewb: get your Meshtastic radios talking">
+<meta property="og:description" content="Set up a Meshtastic radio from your browser over a USB cable. Join a local mesh, give your family a private channel, or see how a radio is set. Nothing to install, no account, no cookies.">
+<meta property="og:image" content="{{SITE}}/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="MeshNewb. Get your radios talking. Set up a Meshtastic radio over a USB cable.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MeshNewb: get your Meshtastic radios talking">
+<meta name="twitter:description" content="Set up a Meshtastic radio from your browser over a USB cable. Nothing to install, no account, no cookies.">
+<meta name="twitter:image" content="{{SITE}}/og.png">
+<meta name="twitter:image:alt" content="MeshNewb. Get your radios talking. Set up a Meshtastic radio over a USB cable.">
+<link rel="icon" href="{{ROOT}}favicon.ico" sizes="48x48">
+<link rel="icon" href="{{ROOT}}favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ROOT}}apple-touch-icon.png">
 <link rel="stylesheet" href="{{ROOT}}app.css" integrity="{{CSS_SRI}}">
 <script type="module" src="{{ROOT}}app.js" integrity="{{APP_SRI}}"></script>
 </head>
@@ -367,6 +389,24 @@
     <li>Rebuild it with <code>npm ci &amp;&amp; npm run build</code> and the hash matches, or run <code>gh attestation verify app.js --repo {{REPO}}</code> to confirm GitHub built it from that commit.</li>
     <li>Or open your browser's developer tools, Network tab: nothing goes out until you press a button.</li>
   </ul>
+</section>
+
+<section class="share" aria-labelledby="share-h">
+  <h2 id="share-h">Share this page</h2>
+  <p>Know someone who should have a radio ready before they need it? Send them here.</p>
+  <div class="buttons">
+    <!-- Shown only where the browser has a share sheet (phones, Safari, Edge, Chrome on Windows). -->
+    <button type="button" id="share-native" class="primary" hidden>Share…</button>
+    <button type="button" id="share-copy">Copy link</button>
+    <a class="btn" id="share-email" href="mailto:?subject=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser&amp;body=This%20page%20sets%20up%20a%20Meshtastic%20radio%20over%20a%20USB%20cable.%20Nothing%20to%20install%2C%20no%20account.%0A%0A{{SITE_ENC}}%2F">Email</a>
+    <span id="share-msg" role="status"></span>
+  </div>
+  <p class="share-more">Or post it on
+    <a href="https://www.facebook.com/sharer/sharer.php?u={{SITE_ENC}}%2F" target="_blank" rel="noopener noreferrer">Facebook</a>,
+    <a href="https://www.reddit.com/submit?url={{SITE_ENC}}%2F&amp;title=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser" target="_blank" rel="noopener noreferrer">Reddit</a>,
+    <a href="https://twitter.com/intent/tweet?url={{SITE_ENC}}%2F&amp;text=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser" target="_blank" rel="noopener noreferrer">X</a> or
+    <a href="https://bsky.app/intent/compose?text=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser%20{{SITE_ENC}}%2F" target="_blank" rel="noopener noreferrer">Bluesky</a>.
+    These are plain links: nothing loads from those sites unless you click one.</p>
 </section>
 
 <footer class="site">
