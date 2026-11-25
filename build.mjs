@@ -95,14 +95,14 @@ const vars = {
   PRESETS_REPO, PRESETS_COMMIT: presetsCommit, PRESETS_COMMIT_SHORT: presetsCommit.slice(0, 7), PRESETS_DATE: presetsDate,
   PRESETS_COUNT: String(index.communities.length),
 };
-// One template, five addresses. / opens on the "Set up a radio" tab; /radio/, /join/, /family/ and /check/ are the same page
+// One template, six addresses. / opens on the "Set up a radio" tab; /radio/, /join/, /family/, /check/ and /use/ are the same page
 // opening on their own tab, so links from before the tabs keep working.
 const render = (file, extra) => readFileSync(file, "utf8").replace(/\{\{(\w+)\}\}/g, (m, k) => {
   const v = { ...vars, ...extra }; if (!(k in v)) throw new Error(`unknown placeholder ${m}`); return v[k];
 });
-const PAGES = ["index.html", "radio/index.html", "join/index.html", "family/index.html", "check/index.html"];
+const PAGES = ["index.html", "radio/index.html", "join/index.html", "family/index.html", "check/index.html", "use/index.html"];
 writeFileSync(`${out}/index.html`, render("src/index.html", { PAGE: "radio", ROOT: "" }));
-for (const page of ["radio", "join", "family", "check"]) {
+for (const page of ["radio", "join", "family", "check", "use"]) {
   mkdirSync(`${out}/${page}`, { recursive: true });
   writeFileSync(`${out}/${page}/index.html`, render("src/index.html", { PAGE: page, ROOT: "../" }));
 }

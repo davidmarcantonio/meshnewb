@@ -8,6 +8,7 @@ import { suggestName } from "./names.js";
 import BOARDS from "../data/boards.json";
 import FIRMWARE from "../data/firmware.json";
 import { summarize, verNums, olderThan, shortVer } from "./summary.js";
+import { initPractice } from "./practice.js";
 import { USE_CASES, PRESET, PRESET_LABEL, ROLE, ROLE_LABEL, FW_DEFAULT } from "./enums.js";
 
 const API = "https://api.meshtastic.org";
@@ -1231,11 +1232,11 @@ async function checkRun() {
 }
 
 // ---------- tabs ----------
-// The page's three jobs are tabs. Which one shows is body[data-page]; app.css hides every part that doesn't name it.
-// The starting tab is baked into the HTML at build time (/ and /radio/, /join/, /family/, /check/); nothing is read from the address.
+// The page's five jobs are tabs. Which one shows is body[data-page]; app.css hides every part that doesn't name it.
+// The starting tab is baked into the HTML at build time (/ and /radio/, /join/, /family/, /check/, /use/); nothing is read from the address.
 let presetsAsked = false;
 function showPage(name) {
-  if (!["radio", "join", "family", "check"].includes(name)) return;
+  if (!["radio", "join", "family", "check", "use"].includes(name)) return;
   document.body.dataset.page = name;
   document.querySelectorAll(".pagetabs button").forEach((t) => { const on = t.dataset.tab === name; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
   if ((name === "radio" || name === "join") && !presetsAsked) { presetsAsked = true; loadPresetIndex(); }
@@ -1329,7 +1330,12 @@ window.addEventListener("DOMContentLoaded", () => {
     t.onclick = () => showPage(t.dataset.tab);
     t.onkeydown = (e) => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); showPage(n.dataset.tab); } };
   });
-  document.querySelectorAll("[data-goto]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); showPage(a.dataset.goto); }));
+  document.querySelectorAll("[data-goto]").forEach((a) => (a.onclick = (e) => {
+    e.preventDefault(); showPage(a.dataset.goto);
+    // "Use your radio" is reached from the bottom of a finished job: bring its top into view.
+    if (a.dataset.goto === "use") document.querySelector(".pagetabs").scrollIntoView({ block: "start" });
+  }));
+  initPractice($("practice"));
   showPage(document.body.dataset.page);
   browserCheck();
 });

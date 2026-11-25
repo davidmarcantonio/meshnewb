@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const SITE = "https://mesh.marcantonio.me";
-const PAGES = ["index.html", "radio/index.html", "join/index.html", "family/index.html", "check/index.html"];
+const PAGES = ["index.html", "radio/index.html", "join/index.html", "family/index.html", "check/index.html", "use/index.html"];
 const meta = (html, attr, key) => html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)">`))?.[1];
 
 for (const page of PAGES) test(`preview tags: ${page}`, () => {
