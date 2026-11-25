@@ -88,7 +88,7 @@ const fw = JSON.parse(readFileSync("data/firmware.json", "utf8"));
 // Link-preview tags need absolute addresses: the services that draw previews do not resolve relative ones reliably.
 const SITE = (process.env.SITE || "https://mesh.marcantonio.me").replace(/\/+$/, "");
 const vars = {
-  SITE,
+  SITE, SITE_ENC: encodeURIComponent(SITE),
   APP_SRI: sri(js), CSS_SRI: sri(css), APP_SHA256: sha256(js),
   VERSION: JSON.parse(readFileSync("package.json", "utf8")).version,
   COMMIT: commit, COMMIT_SHORT: commit.slice(0, 7), REPO: repo, FW_TESTED: fw.tested,

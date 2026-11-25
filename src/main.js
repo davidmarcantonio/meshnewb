@@ -1261,8 +1261,27 @@ function browserCheck() {
   }
 }
 
+// ---------- share this page ----------
+// Always the site's front door (the canonical link), never the address bar: every tab shares the same link.
+function initShare() {
+  const url = document.querySelector('link[rel="canonical"]').href;
+  const title = "MeshNewb: set up a Meshtastic radio from your browser";
+  const say = (m) => { $("share-msg").textContent = m; };
+  if (typeof navigator.share === "function") {
+    $("share-native").hidden = false;
+    $("share-native").addEventListener("click", async () => {
+      try { await navigator.share({ title, text: title, url }); } catch { /* the person closed the share sheet */ }
+    });
+  }
+  $("share-copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(url); say("Link copied."); }
+    catch { say("Copy this: " + url); }
+  });
+}
+
 // ---------- boot ----------
 window.addEventListener("DOMContentLoaded", () => {
+  initShare();
   fillBoards();
   for (const [k, v] of Object.entries(USE_CASES)) opt("usecase", k, v, k === "everyday");
 

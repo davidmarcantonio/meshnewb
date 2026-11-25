@@ -123,6 +123,14 @@ td { padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: t
 #verify tr.err td:first-child { color: var(--err); }
 
 hr.fade { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent); margin: 22px 0 14px; }
+/* Share row: two buttons, one mail link styled as a button, plain text links to four sites. */
+section.share { margin: 0 0 18px; }
+section.share p { margin: 6px 0 0; color: var(--text-2); font-size: 14px; }
+section.share .buttons { align-items: center; }
+a.btn { display: inline-block; padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--accent); color: var(--text); font: 500 14px var(--font); }
+a.btn:hover { background: rgba(145, 132, 217, .12); color: var(--accent-hover); }
+#share-msg { font-size: 13px; color: var(--ok); overflow-wrap: anywhere; }
+section.share p.share-more { margin-top: 10px; font-size: 13px; color: var(--hint); }
 footer.site { color: var(--muted); font-size: 12px; padding-bottom: 28px; }
 footer.site p { margin: 4px 0; max-width: 100ch; }
 footer.site code { font-family: var(--mono); color: var(--text-2); font-size: 11.5px; }

@@ -391,6 +391,24 @@
   </ul>
 </section>
 
+<section class="share" aria-labelledby="share-h">
+  <h2 id="share-h">Share this page</h2>
+  <p>Know someone who should have a radio ready before they need it? Send them here.</p>
+  <div class="buttons">
+    <!-- Shown only where the browser has a share sheet (phones, Safari, Edge, Chrome on Windows). -->
+    <button type="button" id="share-native" class="primary" hidden>Share…</button>
+    <button type="button" id="share-copy">Copy link</button>
+    <a class="btn" id="share-email" href="mailto:?subject=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser&amp;body=This%20page%20sets%20up%20a%20Meshtastic%20radio%20over%20a%20USB%20cable.%20Nothing%20to%20install%2C%20no%20account.%0A%0A{{SITE_ENC}}%2F">Email</a>
+    <span id="share-msg" role="status"></span>
+  </div>
+  <p class="share-more">Or post it on
+    <a href="https://www.facebook.com/sharer/sharer.php?u={{SITE_ENC}}%2F" target="_blank" rel="noopener noreferrer">Facebook</a>,
+    <a href="https://www.reddit.com/submit?url={{SITE_ENC}}%2F&amp;title=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser" target="_blank" rel="noopener noreferrer">Reddit</a>,
+    <a href="https://twitter.com/intent/tweet?url={{SITE_ENC}}%2F&amp;text=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser" target="_blank" rel="noopener noreferrer">X</a> or
+    <a href="https://bsky.app/intent/compose?text=MeshNewb%3A%20set%20up%20a%20Meshtastic%20radio%20from%20your%20browser%20{{SITE_ENC}}%2F" target="_blank" rel="noopener noreferrer">Bluesky</a>.
+    These are plain links: nothing loads from those sites unless you click one.</p>
+</section>
+
 <footer class="site">
   <p>MeshNewb <strong>{{VERSION}}</strong>, build <a href="https://github.com/{{REPO}}/commit/{{COMMIT}}" rel="noopener noreferrer"><code>{{COMMIT_SHORT}}</code></a>. Presets as of {{PRESETS_DATE}}, commit <a href="https://github.com/{{PRESETS_REPO}}/commit/{{PRESETS_COMMIT}}" rel="noopener noreferrer"><code>{{PRESETS_COMMIT_SHORT}}</code></a>.</p>
   <p>Community presets come from each group's published page (linked) and can go stale; if the mesh is quiet, check their Discord. GPL-3.0.</p>
