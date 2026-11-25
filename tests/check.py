@@ -38,10 +38,10 @@ try:
     pg.wait_for_function("() => document.querySelector('#state').options.length > 1", timeout=5000)   # community list loads from the home page
     assert "Set up a radio." in pg.inner_text(".tabintro")
     pg.click(".pagetabs [data-tab=check]")
-    assert sel(pg) == ["false", "false", "true"] and pg.is_visible("#btn-check") and pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-push")
+    assert sel(pg) == ["false", "false", "true"] and pg.is_visible("#btn-check") and pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-new")
     assert "See how a radio is set." in pg.inner_text(".tabintro") and "Set up a radio." not in pg.inner_text(".tabintro")
     pg.click(".pagetabs [data-tab=family]")
-    assert sel(pg) == ["false", "true", "false"] and pg.is_visible("#btn-fam-push") and pg.is_hidden("#btn-check")
+    assert sel(pg) == ["false", "true", "false"] and pg.is_visible("#btn-fam-new") and pg.is_hidden("#btn-check")
     pg.focus(".pagetabs [data-tab=family]"); pg.keyboard.press("ArrowRight")
     assert sel(pg) == ["false", "false", "true"], "arrow keys move between tabs"
     assert pg.errs == [] and pg.csp == [] and pg.ext == [], (pg.errs, pg.csp, pg.ext)
@@ -68,7 +68,7 @@ try:
 
     # the page shows only its own parts
     pg = page(SETUP)
-    assert pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-push") and pg.is_hidden("#longname") and pg.is_hidden("#log"), "other pages' parts are showing"
+    assert pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-new") and pg.is_hidden("#longname") and pg.is_hidden("#log"), "other pages' parts are showing"
     assert pg.is_visible("#btn-check") and pg.inner_text("#check-out") == ""
     assert "See how a radio is set." in pg.inner_text(".tabintro")
     # the page is honest about what leaves the tab: the settings don't, one version lookup does

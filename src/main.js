@@ -1010,10 +1010,7 @@ async function famRead() {
   finally { busy(false); }
 }
 async function famPush() {
-  if (!fam) { err("Create or load the channel first (step 01)."); return; }
-  const longName = $("fam-long").value.trim(), shortName = $("fam-short").value.trim();
-  if ((longName && !shortName) || (!longName && shortName)) { err("Fill in both names, or leave both empty to keep the radio's current name."); return; }
-  if ([...shortName].length > 4) { err("Short name is max 4 characters."); return; }
+  if (!fam) { err("Create a channel, or copy one from a radio, first."); return; }
   busy(true);
   try {
     port = null;
@@ -1028,8 +1025,6 @@ async function famPush() {
     await send("start edit", () => dev.beginEditSettings());
     await send(`channel ${idx}: "${fam.name}"${replacing ? " (replacing the one with the same name)" : ""}, location ${$("fam-pos").checked ? "shared" : "not shared"}`, () =>
       dev.setChannel(create(Protobuf.Channel.ChannelSchema, { index: idx, role: SECONDARY, settings: { name: fam.name, psk: fam.psk, moduleSettings: { positionPrecision: $("fam-pos").checked ? 32 : 0 } } })));
-    if (longName) await send(`owner: "${longName}" / "${shortName}"`, () =>
-      dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(st.users[st.myNodeNum] ?? {}), longName, shortName, isLicensed: false })));
     const restarted = watchReboot(st.rebootCount);
     await send("commit", () => dev.commitEditSettings());
     try { await dev.disconnect(); } catch {}
@@ -1043,8 +1038,7 @@ async function famPush() {
     if (!good) throw new Error("The radio didn't keep the channel. Try again, or check it in the Meshtastic app.");
     famDone++;
     ok(`Channel "${fam.name}" is on this radio (slot ${idx}); its main channel is still ${pub?.name ? `"${pub.name}"` : "the public default"}.`);
-    $("fam-count").textContent = `${famDone} radio${famDone === 1 ? "" : "s"} done. Unplug this one, plug in the next, change the name above, and press the button again.`;
-    $("fam-long").value = ""; $("fam-short").value = "";
+    $("fam-count").textContent = `${famDone} radio${famDone === 1 ? "" : "s"} done. Unplug this one, plug in the next, and press the button again.`;
   } catch (e) {
     err(e.message || String(e));
     if (e.name === "NotFoundError") warn("No radio picked. If yours wasn't listed, try a different USB cable.");
@@ -1205,10 +1199,6 @@ window.addEventListener("DOMContentLoaded", () => {
   };
   famBoot();
   $("btn-name").onclick = () => { const n = suggestName(); $("longname").value = n.long; $("shortname").value = n.short; };
-  let famWord = null; // one word per family, a new number per radio
-  const famSuggest = (keep) => { const n = suggestName(keep ? famWord : null); famWord = n.word; $("fam-long").value = n.long; $("fam-short").value = n.short; $("btn-fam-word").hidden = false; };
-  $("btn-fam-name").onclick = () => famSuggest(true);
-  $("btn-fam-word").onclick = () => famSuggest(false);
   $("btn-reset").onclick = resetStart;
   $("btn-reset-go").onclick = resetArm;
   $("btn-reset-cancel").onclick = resetCancel;

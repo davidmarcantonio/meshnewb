@@ -15,26 +15,31 @@ try:
     pg.goto("http://localhost:8765/"); pg.wait_for_timeout(300)
     print("tabs:", [t.get_attribute("data-tab") for t in pg.locator(".pagetabs button").all()], "| requests:", reqs)
     reqs.clear(); pg.add_init_script(fake); pg.goto("http://localhost:8765/family/"); pg.wait_for_timeout(600)
-    print("family page requests:", reqs, "| radio parts hidden:", pg.is_hidden("#btn-full"), pg.is_hidden("#longname"), "| family visible:", pg.is_visible("#btn-fam-push"))
-    pg.click("#btn-fam-push"); pg.wait_for_timeout(200); print("push with no channel:", pg.inner_text("#log").strip()[-60:])
+    print("family page requests:", reqs, "| radio parts hidden:", pg.is_hidden("#btn-full"), pg.is_hidden("#longname"), "| family visible:", pg.is_visible("#btn-fam-new"))
+    # one card: no "Each radio" card, no per-radio name fields, and no commit button until a channel exists
+    heads = [h.inner_text().replace("\n", " ") for h in pg.locator("section[data-only~=family] h2").all() if h.is_visible()]
+    print("family cards:", heads, "| push hidden before a channel:", pg.is_hidden("#btn-fam-push"))
+    assert len(heads) == 2 and heads[0].startswith("01") and heads[1].startswith("02") and "progress" in heads[1].lower(), heads
+    assert pg.locator("#fam-long, #fam-short, #btn-fam-name, #btn-fam-word").count() == 0 and pg.is_hidden("#btn-fam-push")
     pg.fill("#fam-name","SmithFam"); pg.click("#btn-fam-new")
     key_before = pg.text_content("#fam-key"); link = pg.evaluate("() => null")
     print("created:", pg.inner_text("#fam-status"), "| key chars:", len(key_before), "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
-    import re
-    pg.click("#btn-fam-name"); n1 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
-    pg.click("#btn-fam-name"); n2 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
-    pg.click("#btn-fam-word"); n3 = (pg.input_value("#fam-long"), pg.input_value("#fam-short"))
-    okfmt = all(re.fullmatch(r"[A-Z][a-z]+[A-Z][a-z]+ [1-9][0-9]", l) and s_ == "".join(re.findall(r"[A-Z]", l)) + l[-2:] for l, s_ in (n1, n2, n3))
-    print("suggested:", n1, n2, n3, "| format ok:", okfmt, "| word kept on 2nd press:", n1[0].split()[0] == n2[0].split()[0])
-    pg.fill("#fam-long","Dad"); pg.fill("#fam-short","DAD"); pg.click("#btn-fam-push")
+    assert pg.is_visible("#btn-fam-push") and pg.evaluate("() => document.querySelector('#fam-ready').contains(document.querySelector('#btn-fam-push'))")
+    names_before = pg.evaluate(NODE)["names"]
+    pg.click("#btn-fam-push")
     pg.wait_for_function("() => /radios? done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
     print(pg.inner_text("#log")); print("count:", pg.inner_text("#fam-count")); print("node:", json.dumps(pg.evaluate(NODE)))
+    assert pg.evaluate(NODE)["names"] == names_before, "adding a channel must not rename the radio"
+    assert "owner" not in pg.inner_text("#log")
     # second pass on the same radio: same name must replace, not duplicate
     pg.click("#btn-fam-push"); pg.wait_for_function("() => /2 radios done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
     print("after 2nd push chans:", json.dumps(pg.evaluate(NODE)["chans"]))
     # copy from a radio
     pg.click("[data-fam=read]"); pg.click("#btn-fam-read"); pg.wait_for_function("() => /Found|No named/.test(document.querySelector('#fam-status').textContent)", timeout=60000)
-    print("read:", pg.inner_text("#fam-status"))
+    print("read:", pg.inner_text("#fam-status"), "| push visible on the copy tab:", pg.is_visible("#btn-fam-push"))
+    assert pg.is_visible("#btn-fam-push")
+    pg.click("#btn-fam-push"); pg.wait_for_function("() => /3 radios done/.test(document.querySelector('#fam-count').textContent)", timeout=60000)
+    print("after push from the copy tab chans:", json.dumps(pg.evaluate(NODE)["chans"]))
     print("after read: QR section hidden:", pg.is_hidden("#fam-save"), "| key text empty:", pg.text_content("#fam-key") == "", "| qr px:", pg.evaluate("() => document.querySelector('#fam-qr').width"))
     # the page must take nothing from its own address: a crafted URL can't preload or alter a channel
     pg2 = b.new_page(); pg2.add_init_script(fake)
