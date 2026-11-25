@@ -39,8 +39,11 @@ def scenario(name, fill, shot=None, opts=None, after=None):
         if pg.is_visible("#verify"): print("--- verify ---\n"+pg.inner_text("#verify"))
         print("--- node ---", json.dumps(node))
         b.close()
+def short(pg, sn):
+    # the short name sits behind "Short name: XX (change)"
+    pg.evaluate("() => { document.querySelector('#short-row').open = true; }"); pg.fill("#shortname", sn)
 def me(pg, ln="Test Node", sn="TST1", pin="246810"):
-    pg.fill("#longname", ln); pg.fill("#shortname", sn); pg.fill("#pin", pin)
+    pg.fill("#longname", ln); short(pg, sn); pg.fill("#pin", pin)
 def pick(pg, slug, state="CA"):
     pg.click("[data-mode=community]")
     pg.select_option("#state", state); pg.select_option("#community", f"us/{state.lower()}/{slug}")
@@ -51,13 +54,16 @@ try:
     def b_(pg): me(pg); pick(pg,"socal-mesh-longturbo"); pg.select_option("#usecase","everyday")
     scenario("SoCal LongTurbo everyday", b_)
     def c(pg):
-        pg.fill("#longname","Desert Rat"); pg.fill("#shortname","DR1"); pg.click("[data-conn=wifi]"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
+        pg.fill("#longname","Desert Rat"); short(pg,"DR1"); pg.click("[data-conn=wifi]"); pg.fill("#ssid","HomeNet"); pg.fill("#wifipsk","hunter2hunter2")
         pick(pg,"high-desert-mesh"); pg.select_option("#usecase","home"); pg.click("#btn-customize")
         pg.fill("#txpower","22"); pg.fill("#hops","5"); pg.click("text=Channels (blank = public default)"); pg.fill("#churl", URL_CH)
         pg.click("text=Broadcast intervals")
     scenario("Customize HD Mesh + WiFi + channel URL", c)
-    def d(pg): pick(pg,"central-valley-mesh")
-    scenario("Validation (nothing personal filled in)", d)
+    def d(pg): pg.fill("#longname",""); pg.fill("#pin",""); pick(pg,"central-valley-mesh")   # the page fills these in; empty them
+    def d2(pg):
+        t = pg.inner_text("#log")
+        assert "needs a name" in t and "exactly 6 digits" in t and pg.evaluate("() => window.__fakeNode.adminLog.length") == 0, t
+    scenario("Validation (name and PIN emptied)", d, after=d2)
     def e(pg):
         me(pg); pick(pg,"san-diego-mesh")
         print("listed card:", pg.inner_text("#c-listed").replace("\n"," | "), "| link:", pg.get_attribute("#c-listed-link","href"), "| preset card hidden:", pg.is_hidden("#c-card"))
@@ -68,7 +74,7 @@ try:
     scenario("Standard settings (default tab): region only, firmware defaults kept", g)
     TE = {"fw":"2.7.10.94d4bdf","pioEnv":"t-echo","hasWifi":False,"usb":{"usbVendorId":0x239a,"usbProductId":0x4405}}
     def h(pg):
-        me(pg); pg.click("#btn-detect"); pg.wait_for_function("() => /running firmware/.test(document.querySelector('#detect-result').textContent)")
+        me(pg); pg.click("#btn-detect"); pg.wait_for_function("() => /running Meshtastic/.test(document.querySelector('#detect-result').textContent)")
         print("detect:", pg.inner_text("#detect-result"), "| nrf steps shown:", pg.is_visible("#nrf-steps"), "| file:", pg.inner_text("#nrf-file"))
     def h2(pg): print("gate:", pg.is_visible("#fw-gate"), pg.inner_text("#fw-gate-text"), "| anyway offered:", pg.is_visible("#btn-fw-anyway"), "| update label:", pg.inner_text("#btn-fw-update"), "| admin so far:", pg.evaluate("() => window.__fakeNode.adminLog.join(',')"))
     scenario("T-Echo on 2.7.10: detected, gate stops Configure only before any change", h, opts=TE, after=h2)
@@ -121,7 +127,7 @@ try:
             pg.route("https://api.meshtastic.org/resource/deviceHardware", lambda r: r.fulfill(json=HW))
             pg.add_init_script("window.__fakeOpts = " + json.dumps(opts)); pg.add_init_script(fake)
             pg.goto("http://localhost:8765/radio/index.html"); pg.wait_for_timeout(600)
-            pg.click("#btn-detect"); pg.wait_for_function("() => /running firmware/.test(document.querySelector('#detect-result').textContent)")
+            pg.click("#btn-detect"); pg.wait_for_function("() => /running Meshtastic/.test(document.querySelector('#detect-result').textContent)")
             pg.click("#btn-dfu")
             pg.wait_for_function("() => /Done\\.|didn't switch|isn't an nRF52|already in update/.test(document.querySelector('#dfu-status').textContent)", timeout=40000)
             t = pg.inner_text("#dfu-status"); adm = pg.evaluate("() => window.__fakeNode.adminLog.join(',')")

@@ -18,41 +18,37 @@
   <p>Meshtastic radios send text messages to each other with no cell service and no internet. This page sets them up over a USB cable. Pick what you want to do.</p>
   <!-- One page, four choices in a 2x2 grid (still tabs to a screen reader). A tab only changes which parts show (body data-page); nothing is read from the address. -->
   <div class="pagetabs" role="tablist" aria-label="What do you want to do?">
-    <button type="button" role="tab" data-tab="radio"><b><i class="ico" aria-hidden="true">📻</i>Set up a radio</b><span>Firmware plus the right settings</span></button>
+    <button type="button" role="tab" data-tab="radio"><b><i class="ico" aria-hidden="true">📻</i>Set up a radio</b><span>New radio? Start here</span></button>
     <button type="button" role="tab" data-tab="join"><b><i class="ico" aria-hidden="true">📡</i>Join a local mesh</b><span>Mesh settings only, keeps the rest</span></button>
     <button type="button" role="tab" data-tab="family"><b><i class="ico" aria-hidden="true">👥</i>Family or group channel</b><span>One private channel, several radios</span></button>
     <button type="button" role="tab" data-tab="check"><b><i class="ico" aria-hidden="true">🔍</i>See how a radio is set</b><span>Look at its settings, change nothing</span></button>
   </div>
   <div class="tabintro">
-    <p data-only="radio"><b>Set up a radio.</b> For a new radio, or one that needs the right settings for your area. Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+    <p data-only="radio"><b>Set up a radio.</b> For a new radio, or one that needs a fresh start. Plug it in, check the name and PIN this page picked for you, press one button.</p>
     <p data-only="join"><b>Join a local mesh.</b> For a radio that is already set up. Pick the mesh near you, plug in, press one button. This tab changes only the radio's mesh settings: modem preset, frequency slot, hop limit and whatever else that group publishes. Its name, Bluetooth or WiFi, PIN and private channels stay as they are.</p>
     <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
     <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
-    <div class="fw" data-only="radio">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
-    <div class="hint" data-only="radio">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</div>
   </div>
 </header>
 
-<section class="panel prereq privacy-teaser">
-  <h2><span><span class="n">&#9679;</span>Private by design</span><a href="#privacy" class="small-link">full details &darr;</a></h2>
-  <ul class="plain">
-    <li>No accounts, cookies, analytics or trackers.</li>
-    <li>Your name, PIN, WiFi password and keys go from this tab to your radio over USB. Nothing is sent to us or stored.</li>
-    <li>The only outside requests are to Meshtastic's own servers: to look up the current firmware version, and to download the firmware when you flash. Nothing about you or your radio is sent.</li>
-  </ul>
-</section>
+<p class="privacy-teaser"><b>Private.</b> What you type goes to your radio over the USB cable and nowhere else. No accounts, cookies or trackers. The only outside requests ask Meshtastic for the current firmware version and download it. <a href="#privacy">How to check this</a></p>
 
 <section class="panel prereq" id="prereq">
-  <h2><span><span class="n">00</span>Before you start</span><small>most failed flashes are one of these</small></h2>
+  <h2><span><span class="n">00</span>Before you start</span><small>three things to have ready</small></h2>
   <div id="browser-check" class="check"></div>
   <ol class="checklist">
-    <li><b>Browser.</b> Desktop Chrome, Edge or Opera. Firefox 151+ should also work. Safari and iPhone/iPad can't talk to USB devices from a web page. Android Chrome has only just added support and isn't tested here.</li>
-    <li><b>Know how your phone will connect.</b> Almost every Meshtastic board has Bluetooth, which is how the phone app talks to it. ESP32 boards (Heltec, LilyGo T-Beam/T-Deck, Station G2 and most others listed in step 03) also have WiFi. nRF52 boards (RAK4631, LilyGo T-Echo, Seeed T1000-E) are Bluetooth only. On ESP32 you pick one: turning WiFi on turns Bluetooth off. If you're not sure, choose Bluetooth in step 01.</li>
-    <li><b>A USB data cable, not a charge-only one.</b> Voltage isn't the issue (USB is always 5&nbsp;V). Cheap charge-only cables simply leave out the data wires, and they look identical. If your computer doesn't see the board, swap cables first. Quick test: a cable that lets your phone show up as a drive on your computer carries data. Most current boards are USB-C; plug straight into the computer, not through a hub or monitor.</li>
-    <li><b>USB driver, sometimes.</b> Many ESP32 boards use a CP210x or CH9102 USB chip. Recent macOS and Windows 11 usually handle it on their own; if no port shows up, install the driver from <a href="https://meshtastic.org/docs/getting-started/serial-drivers/esp32/" target="_blank" rel="noopener noreferrer">Meshtastic's driver page</a>, then restart the browser.</li>
-    <li><b>Antenna on first.</b> Screw the antenna on before plugging the board in. Transmitting without one can damage the radio.</li>
-    <li><b>Still not detected?</b> Hold the board's BOOT button while plugging in the cable, then release. Close any other app using the port (Meshtastic app on desktop, serial monitor, Arduino IDE).</li>
+    <li><b>A computer.</b> Use Chrome, Edge or Opera on a Mac or PC. iPhones, iPads and Safari can't talk to a radio over USB.</li>
+    <li><b>A USB cable that carries data.</b> Many cables only charge, and they look identical. If your computer doesn't notice the radio, swap the cable first. Plug straight into the computer, not through a hub or monitor.</li>
+    <li><b>The antenna, screwed on.</b> Do this before plugging in. A radio that transmits without its antenna can be damaged.</li>
   </ol>
+  <details class="mini" id="trouble"><summary>Radio not showing up?</summary>
+    <ul class="plain">
+      <li><b>Try another cable.</b> This is the cause most of the time. Quick test: a cable that lets your phone show up on your computer carries data.</li>
+      <li><b>Close anything else using the radio.</b> The Meshtastic app on this computer, another flasher tab, a serial monitor or Arduino IDE.</li>
+      <li><b>Install the USB driver.</b> Some radios need one (CP210x or CH9102 chip). Recent macOS and Windows 11 usually have it; if not, get it from <a href="https://meshtastic.org/docs/getting-started/serial-drivers/esp32/" target="_blank" rel="noopener noreferrer">Meshtastic's driver page</a>, then restart the browser.</li>
+      <li><b>Hold the BOOT button.</b> Hold the radio's BOOT button while plugging in the cable, then let go.</li>
+    </ul>
+  </details>
 </section>
 
 <main>
@@ -106,16 +102,20 @@
     </section>
 
     <section class="panel" data-only="radio">
-      <h2><span><span class="n">01</span>Your radio</span><small>plug it in and check it first</small></h2>
-      <div class="buttons"><button type="button" class="act small quiet" id="btn-detect">Detect my board</button></div>
-      <div class="hint" id="detect-result">Plug the radio in and press Detect. Your browser asks which USB device to use; the page then asks the radio what it is and which firmware it runs, so you know whether it needs an update before you set anything.</div>
-      <label for="board">Board (ESP32 family)</label>
-      <select id="board"></select>
-      <div class="row">
-        <div><label for="baud">Flash baud</label><select id="baud"><option>115200</option><option selected>460800</option><option>921600</option></select></div>
-        <div><label for="localbin">…or a local .factory.bin</label><input id="localbin" type="file" accept=".bin"></div>
-      </div>
-      <div class="hint">nRF52 boards (T-Echo, RAK4631 and others) aren't in this list: they update by drag-and-drop, then use "Configure only". Press Detect and the steps appear here.</div>
+      <h2><span><span class="n">01</span>Your radio</span><small>plug it in first</small></h2>
+      <div class="buttons"><button type="button" class="act primary" id="btn-detect">Find my radio</button></div>
+      <div class="hint" id="detect-result">Plug the radio in and press the button. Your browser asks which USB device to use; pick the one that appeared when you plugged in. The page then asks the radio what it is and whether its software is up to date.</div>
+      <details class="mini" id="board-manual"><summary>Brand-new radio, or the button couldn't tell? Pick it yourself</summary>
+        <label for="board">Which radio is it?</label>
+        <select id="board"><option value="" selected>Choose your radio…</option></select>
+        <div class="hint">The name is usually printed on the board or the box. Some radios (T-Echo, RAK4631, T1000-E) aren't listed because they update by copying a file instead: press "Find my radio" and the steps appear here.</div>
+        <details class="mini"><summary>Advanced: install speed, or my own firmware file</summary>
+          <div class="row">
+            <div><label for="baud">Install speed (baud)</label><select id="baud"><option>115200</option><option selected>460800</option><option>921600</option></select></div>
+            <div><label for="localbin">My own .factory.bin file</label><input id="localbin" type="file" accept=".bin"></div>
+          </div>
+        </details>
+      </details>
       <div class="card" id="nrf-steps" hidden>
         <p><b>Updating an nRF52 board (drag-and-drop)</b></p>
         <ol>
@@ -126,34 +126,34 @@
             <div class="hint" id="dfu-status" role="status"></div></li>
           <li>Drag the file onto that drive. If Finder shows an error, use Terminal instead: <code id="nrf-cp"></code></li>
           <li>The drive disappears and the board restarts. A "not ejected properly" warning at this point is normal.</li>
-          <li>Come back here and press "Configure only".</li>
+          <li>Come back here and press "Set up my radio".</li>
         </ol>
       </div>
     </section>
 
     <!-- ===== Always required: what's personal to you ===== -->
     <section class="panel" data-only="radio">
-      <h2><span><span class="n">02</span>You</span><small>always required</small></h2>
-      <div class="row">
-        <div><label for="longname">Long name <span class="req">*</span></label><input id="longname" maxlength="39" placeholder="e.g. MapleCut 45">
-          <div class="hint">Everyone on the mesh can see this name, not just people you know. A made-up name works best; avoid real names, especially children's.</div></div>
-        <div><label for="shortname">Short name <span class="req">*</span></label><input id="shortname" maxlength="4" placeholder="MC45">
-          <div class="hint">1–4 characters, unique per radio.</div></div>
-      </div>
-      <div class="buttons"><button type="button" class="small quiet" id="btn-name">Suggest a name</button></div>
-      <label>How will you connect to it? <span class="req">*</span></label>
-      <div class="tabs"><button type="button" data-conn="ble" class="on">Bluetooth (phone app)</button><button type="button" data-conn="wifi">WiFi (ESP32 boards only)</button></div>
+      <h2><span><span class="n">02</span>You</span><small>picked for you; change anything</small></h2>
+      <label for="longname">Radio name <span class="req">*</span></label>
+      <div class="pinrow"><input id="longname" maxlength="39" placeholder="e.g. MapleCut 45" autocomplete="off"><button type="button" class="small quiet" id="btn-name">Pick another</button></div>
+      <div class="note">Everyone on the mesh can see this name, not only people you know. A made-up name works best. Avoid real names, especially children's.</div>
+      <details class="mini" id="short-row"><summary>Short name: <b id="short-show"></b> (change)</summary>
+        <label for="shortname">Short name <span class="req">*</span></label><input id="shortname" maxlength="4" placeholder="MC45" autocomplete="off">
+        <div class="hint">1 to 4 characters, shown where the full name doesn't fit. It follows the radio name until you type your own.</div>
+      </details>
+      <label>How will your phone reach it? <span class="req">*</span></label>
+      <div class="tabs"><button type="button" data-conn="ble" class="on">Bluetooth (phone app)</button><button type="button" data-conn="wifi">WiFi (some radios)</button></div>
       <div id="ble-fields">
         <label for="pin">Bluetooth PIN <span class="req">*</span></label>
-        <div class="pinrow"><input id="pin" inputmode="numeric" maxlength="6" placeholder="6 digits"><button type="button" class="small quiet" id="btn-genpin">Generate</button></div>
-        <div class="hint">Write it down. You'll type it when pairing the Meshtastic phone app. Works on every board.</div>
+        <div class="pinrow"><input id="pin" inputmode="numeric" maxlength="6" placeholder="6 digits" autocomplete="off"><button type="button" class="small quiet" id="btn-genpin">New PIN</button></div>
+        <div class="note"><b>Write this down.</b> Your phone asks for it the first time it connects to the radio.</div>
       </div>
       <div id="wifi-fields" hidden>
         <div class="row">
-          <div><label for="ssid">WiFi SSID <span class="req">*</span></label><input id="ssid" autocomplete="off"></div>
+          <div><label for="ssid">WiFi network name <span class="req">*</span></label><input id="ssid" autocomplete="off"></div>
           <div><label for="wifipsk">WiFi password <span class="req">*</span></label><input id="wifipsk" type="password" autocomplete="new-password"></div>
         </div>
-        <div class="callout">WiFi on means Bluetooth off. The phone app's Bluetooth pairing won't work; you'll manage the node from its web page on your home network (or the app over your network). Not available on nRF52 boards like the RAK4631 or T-Echo.</div>
+        <div class="callout">Not sure? Choose Bluetooth. WiFi on means Bluetooth off: the phone app's Bluetooth pairing won't work, and you reach the radio over your home network instead. Some radios (RAK4631, T-Echo, T1000-E) have no WiFi.</div>
       </div>
     </section>
 
@@ -166,7 +166,7 @@
       <div id="panel-standard">
         <div class="card">
           <p><b>Start here if you're not sure.</b> Your radio keeps the settings Meshtastic ships with; this page only sets the region to United States, plus your name and connection above. That is enough to get on the air and hear anyone nearby who is also on the defaults.</p>
-          <p class="hint">Standard settings come from the firmware itself, so they are right for whichever version gets flashed. For a clean start, use "Erase, flash &amp; configure". "Configure only" leaves a used radio's old preset in place.</p>
+          <p class="hint">On a used radio, "Just apply my settings" keeps whatever mesh settings its last owner chose. For a clean start, use "Erase and install fresh".</p>
           <p>Many areas have a local mesh that runs different settings. If you hear nobody, or want better range and fewer lost messages, check whether your area has one.</p>
         </div>
         <div class="buttons"><button type="button" class="small quiet" id="btn-find-mesh">Find my local mesh →</button></div>
@@ -278,25 +278,46 @@
       <p class="hint" data-only="join">The radio must be running Meshtastic. Only the mesh settings shown above are written. The radio's name, Bluetooth or WiFi, PIN and private channels are not sent and not changed. Afterwards the page reads the radio back and shows what it found.</p>
       <div class="buttons" data-only="join"><button type="button" class="act primary" id="btn-join">Apply these mesh settings</button></div>
       <h2 data-only="family"><span><span class="n">02</span>Progress</span></h2>
-      <ol class="steps" data-only="radio">
-        <li data-step="1" data-state="done">Settings</li><li data-step="2">Flash</li><li data-step="3">Configure</li><li data-step="4">Verify</li>
-      </ol>
-      <div class="buttons" data-only="radio">
-        <button class="act primary" id="btn-full">Erase, flash &amp; configure</button>
-        <button class="act quiet" id="btn-config">Configure only (already flashed)</button>
+      <div class="buttons" data-only="radio"><button type="button" class="act primary big" id="btn-go">Set up my radio</button></div>
+      <p class="note" data-only="radio" id="go-plan">The page looks at the radio first. If it already runs current Meshtastic, only your settings are applied. If it needs Meshtastic installed or updated, the page stops and asks before erasing anything.</p>
+      <div class="card" id="go-confirm" hidden>
+        <p><b id="go-confirm-title"></b></p>
+        <p id="go-confirm-text"></p>
+        <div class="buttons">
+          <button type="button" class="act primary small" id="btn-go-install">Erase and install fresh</button>
+          <button type="button" class="quiet small" id="btn-go-cancel">Not now</button>
+        </div>
       </div>
+      <div class="choose" data-only="radio">
+        <span>Or choose yourself:</span>
+        <button type="button" class="act quiet small" id="btn-full">Erase and install fresh</button>
+        <button type="button" class="act quiet small" id="btn-config">Just apply my settings</button>
+      </div>
+      <div class="hint" data-only="radio">"Erase" means everything on the radio: its list of other radios, messages and keys. Installs: <b id="fwver">the current Meshtastic release, looked up when you install</b> (tested with {{FW_TESTED}}). Meshtastic labels that release "Beta"; despite the name it is the build meant for everyone, and "Alpha" is the test build.</div>
       <div class="card" id="fw-gate" hidden>
         <p><b>Firmware is out of date</b></p>
         <p id="fw-gate-text"></p>
-        <p class="hint">Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</p>
+        <p class="hint">Meshtastic labels its recommended release "Beta". Despite the name, that is the build meant for everyone; "Alpha" is the test build. This page only installs Beta.</p>
         <div class="buttons">
-          <button type="button" class="act primary small" id="btn-fw-update">Erase, update &amp; configure</button>
-          <button type="button" class="act quiet small" id="btn-fw-anyway">Configure anyway</button>
+          <button type="button" class="act primary small" id="btn-fw-update">Erase and install the update</button>
+          <button type="button" class="act quiet small" id="btn-fw-anyway">Apply settings anyway</button>
         </div>
       </div>
-      <div class="callout" data-only="radio">"Erase" means everything on the radio: nodes, messages, keys. When the browser asks, pick the port that appeared when you plugged in (CP210x, USB JTAG or usbmodem).</div>
-      <p><progress id="progress" max="100" value="0"></progress> <span id="progtext" class="hint"></span></p>
-      <div id="log"></div>
+      <div class="runbox">
+        <ol class="steps" data-only="radio">
+          <li data-step="1" data-state="done">Your settings</li><li data-step="2">Install</li><li data-step="3">Apply</li><li data-step="4">Check</li>
+        </ol>
+        <p><progress id="progress" max="100" value="0"></progress> <span id="progtext" class="hint"></span></p>
+        <div id="log" role="log"></div>
+      </div>
+      <div class="card done" id="done" hidden data-only="radio">
+        <p><b>Your radio is ready.</b> Now connect your phone:</p>
+        <ol>
+          <li>Install the Meshtastic app from the App Store or Google Play.</li>
+          <li id="done-pair"></li>
+          <li>Open the public channel and send a short hello. If nobody answers, that is normal in a quiet area: try "My local mesh" in step 03, or set up a second radio and message yourself.</li>
+        </ol>
+      </div>
     </section>
     <section class="panel" data-only="radio">
       <h2><span><span class="n">05</span>Start over</span><small>a radio that used to be someone else's</small></h2>
@@ -318,7 +339,7 @@
       <div class="hint" id="reset-status"></div>
     </section>
     <section class="panel" id="verify" hidden>
-      <h2><span>Verification</span><small>read back from the node</small></h2>
+      <h2><span>What the radio saved</span><small>read back from the radio</small></h2>
       <table><tbody></tbody></table>
     </section>
 </main>
@@ -333,7 +354,7 @@
     <li><b>Two outside requests, only when you press a button,</b> both to Meshtastic's own servers:
       <ul>
         <li><code>api.meshtastic.org</code> to find the current beta firmware version.</li>
-        <li><code>release.meshtastic.org</code> to download that firmware, only for "Erase, flash &amp; configure".</li>
+        <li><code>release.meshtastic.org</code> to download that firmware, only for "Erase and install fresh".</li>
       </ul>
       These requests carry no cookies and no referrer. Like any download, Meshtastic's servers see your IP address.</li>
     <li><b>Enforced by your browser.</b> The page's Content-Security-Policy tells your browser to block every other connection, so a bug in the page can't send your data anywhere else. The checks below let you confirm the page you got is the published one.</li>

@@ -17,7 +17,7 @@ try:
       return { api: await t('https://api.meshtastic.org/github/firmware/list'), release: await t('https://release.meshtastic.org/x.json'), other: await t('https://example.com/beacon') } }""")
     print("fetch results:", res)
     print("requests that reached the network layer:", seen)
-    pg.fill("#longname","dma West Portal"); pg.fill("#shortname","DMA1"); pg.fill("#pin","246810")
+    pg.fill("#longname","dma West Portal"); pg.evaluate("() => { document.querySelector('#short-row').open = true; }"); pg.fill("#shortname","DMA1"); pg.fill("#pin","246810")
     pg.screenshot(path="tests/screenshot.png", full_page=True)
     b.close()
 finally: srv.terminate()
