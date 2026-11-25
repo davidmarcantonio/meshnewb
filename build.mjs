@@ -41,6 +41,9 @@ for (const [pkg, file] of [
 ]) copyFileSync(`node_modules/${pkg}/files/${file}`, `${out}/fonts/${file}`);
 // The "M-Powered" community badge, byte-for-byte from github.com/meshtastic/design ("Meshtastic Powered Logo").
 copyFileSync("assets/m-powered.svg", `${out}/m-powered.svg`);
+// Link-preview image and icons. Committed files, copied as-is (assets/src/og.html is what og.png was rendered from).
+const STATIC = ["og.png", "favicon.ico", "favicon.svg", "apple-touch-icon.png"];
+for (const f of STATIC) copyFileSync(`assets/${f}`, `${out}/${f}`);
 
 // The checked-out commit, not GITHUB_SHA: the daily presets refresh rebuilds the already-deployed app commit.
 const git = (cwd, args) => execSync(`git ${args}`, { cwd, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
@@ -82,7 +85,10 @@ for (const c of index.communities) {
 const repo = process.env.GITHUB_REPOSITORY || "davidmarcantonio/meshnewb";
 const fw = JSON.parse(readFileSync("data/firmware.json", "utf8"));
 
+// Link-preview tags need absolute addresses: the services that draw previews do not resolve relative ones reliably.
+const SITE = (process.env.SITE || "https://mesh.marcantonio.me").replace(/\/+$/, "");
 const vars = {
+  SITE,
   APP_SRI: sri(js), CSS_SRI: sri(css), APP_SHA256: sha256(js),
   VERSION: JSON.parse(readFileSync("package.json", "utf8")).version,
   COMMIT: commit, COMMIT_SHORT: commit.slice(0, 7), REPO: repo, FW_TESTED: fw.tested,
@@ -107,6 +113,6 @@ const manifest = {
   commit, repo, files: {},
   presets: { repo: PRESETS_REPO, commit: presetsCommit, date: presetsDate, count: index.communities.length, files: presetFiles },
 };
-for (const f of [...PAGES, "app.js", "app.css", "m-powered.svg"]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
+for (const f of [...PAGES, "app.js", "app.css", "m-powered.svg", ...STATIC]) manifest.files[f] = sha256(readFileSync(`${out}/${f}`));
 writeFileSync(`${out}/build.json`, JSON.stringify(manifest, null, 2) + "\n");
 console.log(`app.js ${js.length} bytes  sha256 ${vars.APP_SHA256}\ncommit ${commit}\npresets ${index.communities.length} communities, ${PRESETS_REPO} @ ${presetsCommit} (${presetsDate})`);
