@@ -65,7 +65,7 @@
     </section>
     <!-- ===== Family / group channel (family page only) ===== -->
     <section class="panel" data-only="family">
-      <h2><span><span class="n">01</span>The channel</span><small>do this once</small></h2>
+      <h2><span><span class="n">01</span>The channel</span><small>create or copy it, then add it to each radio</small></h2>
       <p class="hint">Each radio should already be set up for your area (<a href="{{ROOT}}radio/" data-goto="radio">Set up a radio</a>). This page adds a private channel beside the public one, so the radio stays on the local mesh and can still relay through neighbours.</p>
       <div class="tabs"><button type="button" data-fam="new" class="on">Create a new channel</button><button type="button" data-fam="read">Copy from a radio that has it</button></div>
       <div id="fam-new">
@@ -96,18 +96,10 @@
           </details>
           <div class="buttons"><button type="button" class="small quiet" id="btn-fam-print">Print this page</button></div>
         </details>
+        <div class="buttons"><button type="button" class="act primary" id="btn-fam-push">Add this channel to the radio</button></div>
+        <div class="hint">Plug in a radio and press the button. For the next radio, unplug, plug it in, and press again. The radio keeps its name and its other settings.</div>
+        <div class="hint" id="fam-count" role="status"></div>
       </div>
-    </section>
-    <section class="panel" data-only="family">
-      <h2><span><span class="n">02</span>Each radio</span><small>repeat for every radio</small></h2>
-      <div class="row">
-        <div><label for="fam-long">Name for this radio (optional)</label><input id="fam-long" maxlength="39" placeholder="MapleCut 45" autocomplete="off"></div>
-        <div><label for="fam-short">Short name (up to 4)</label><input id="fam-short" maxlength="4" placeholder="MC45" autocomplete="off"></div>
-      </div>
-      <div class="buttons"><button type="button" class="small quiet" id="btn-fam-name">Suggest a name</button><button type="button" class="small quiet" id="btn-fam-word" hidden>Different words</button></div>
-      <div class="hint">Everyone on the mesh can see this name, not just people you know. A made-up name works best; avoid real names, especially children's. Suggest keeps the same two words for all your radios and changes the number, so they sort together (MapleCut 45, MapleCut 17). Leave both empty to keep the radio's current name.</div>
-      <div class="buttons"><button type="button" class="act primary" id="btn-fam-push">Add the channel to this radio</button></div>
-      <div class="hint" id="fam-count"></div>
       <div class="callout">Before you rely on it: send a test message on the channel from each radio, indoors and from down the street. Range is a few blocks to a few miles without other nodes in between. This is text messaging, not voice, and not a replacement for 911. Keep the radios charged.</div>
     </section>
 
@@ -279,7 +271,7 @@
 
     <section class="panel" data-only="radio family">
       <h2 data-only="radio"><span><span class="n">04</span>Go</span></h2>
-      <h2 data-only="family"><span><span class="n">03</span>Progress</span></h2>
+      <h2 data-only="family"><span><span class="n">02</span>Progress</span></h2>
       <ol class="steps" data-only="radio">
         <li data-step="1" data-state="done">Settings</li><li data-step="2">Flash</li><li data-step="3">Configure</li><li data-step="4">Verify</li>
       </ol>
