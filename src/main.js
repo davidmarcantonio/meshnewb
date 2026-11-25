@@ -46,7 +46,7 @@ const get = (url) => fetch(url, NET);
 
 function fillBoards() {
   const list = [...BOARDS.boards].sort((a, b) => a[1].localeCompare(b[1]));
-  for (const [target, name] of list) opt("board", target, `${name}  (${target})`, target === "heltec-v3");
+  for (const [target, name] of list) opt("board", target, name);
 }
 
 let currentFw = null; // current beta, once asked
@@ -55,7 +55,7 @@ async function resolveFirmware() {
   try {
     const fw = await (await get(`${API}/github/firmware/list`)).json();
     const v = fw.releases.stable[0].id.replace(/^v/, "");
-    $("fwver").textContent = `${v} (current beta)`;
+    $("fwver").textContent = `Meshtastic ${shortVer(v)}`;
     return (currentFw = v);
   } catch (e) {
     warn(`Couldn't ask api.meshtastic.org for the current beta (${e.message}); using tested ${FIRMWARE.tested}.`);
@@ -300,13 +300,13 @@ function readSettings() {
     ssid: $("ssid").value.trim(),
     wifiPsk: $("wifipsk").value,
   };
-  if (!p.longName) problems.push("Long name is required — it's how people see you on the mesh.");
-  if (!p.shortName) problems.push("Short name is required (1–4 characters).");
-  if ([...p.shortName].length > 4) problems.push("Short name is max 4 characters.");
-  if (new TextEncoder().encode(p.longName).length > 39) problems.push("Long name is max 39 bytes.");
-  if (p.conn === "ble" && !/^\d{6}$/.test(p.pin)) problems.push("Bluetooth PIN must be exactly 6 digits (hit Generate if you like).");
+  if (!p.longName) problems.push("The radio needs a name (step 02). Press \"Pick another\" for a made-up one.");
+  if (!p.shortName) problems.push("The radio needs a short name of 1 to 4 characters (step 02).");
+  if ([...p.shortName].length > 4) problems.push("The short name can be 4 characters at most.");
+  if (new TextEncoder().encode(p.longName).length > 39) problems.push("The radio name is too long. Shorten it.");
+  if (p.conn === "ble" && !/^\d{6}$/.test(p.pin)) problems.push("The Bluetooth PIN must be exactly 6 digits (step 02). Press \"New PIN\" for one.");
   if (p.conn === "wifi") {
-    if (!p.ssid) problems.push("WiFi SSID is required when connecting over WiFi.");
+    if (!p.ssid) problems.push("Type your WiFi network name (step 02).");
     if (p.wifiPsk.length < 8) problems.push("WiFi password must be 8+ characters (WPA2).");
   }
 
@@ -415,6 +415,7 @@ function identify(st) {
   const name = board?.[1] ?? NRF_KNOWN[key]?.[1] ?? (pioEnv || (hw ? Protobuf.Mesh.HardwareModel[hw] : null));
   detected = { family, pioEnv, name, fw: st?.metadata?.firmwareVersion ?? null, updateMode: NRF_UPDATE_MODE.has(key) };
   if (board) $("board").value = board[0];
+  else if (family !== "nrf52") $("board-manual").open = true; // can't tell which: the list has to be in view
   showNrfSteps(family === "nrf52");
   return detected;
 }
@@ -446,7 +447,7 @@ async function enterUpdateMode() {
     const d = identify(c.st);
     if (d.family !== "nrf52") {
       try { await c.dev.disconnect(); } catch {}
-      out.textContent = "This isn't an nRF52 board, so it doesn't update by drag-and-drop. Use \"Erase, flash & configure\" in step 04.";
+      out.textContent = "This radio doesn't update by drag-and-drop. Use \"Erase and install fresh\" in step 04.";
       return;
     }
     const p = port;
@@ -471,33 +472,38 @@ async function enterUpdateMode() {
 }
 
 async function detect() {
-  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return; }
+  if (!("serial" in navigator)) { err("This browser can't reach USB serial devices. Use desktop Chrome, Edge or Opera (or Firefox 151+)."); return null; }
   const out = $("detect-result");
   busy(true);
   try {
     await pickPort();
     let st = null;
     if (!NRF_UPDATE_MODE.has(usbKey(port).key)) {
-      out.textContent = "Asking the board what it is…";
+      out.textContent = "Asking the radio what it is…";
       try { const c = await connectMesh(8000); st = c.st; try { await c.dev.disconnect(); } catch {} } catch { /* no Meshtastic answering */ }
       try { await port.close(); } catch {}
     }
     const d = identify(st);
-    if (d.updateMode) out.textContent = "An nRF52 board in update mode (its USB drive should be showing). Copy the firmware file onto the drive; steps below.";
+    d.current = null; d.old = false;
+    if (d.updateMode) out.textContent = "This radio is in update mode (its USB drive should be showing). Copy the firmware file onto the drive; steps below.";
     else if (d.fw) {
-      const current = await resolveFirmware();
-      const old = olderThan(d.fw, current);
+      const current = d.current = await resolveFirmware();
+      const old = d.old = olderThan(d.fw, current);
       const blank = (st?.config?.lora?.region ?? 0) === 0 ? " No region is set, so it is new or freshly erased." : "";
-      out.textContent = `${d.name ?? "Meshtastic board"}, running firmware ${shortVer(d.fw)}. `
-        + (old ? `Out of date: current is ${shortVer(current)}. Update it before configuring` : "Up to date.")
-        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " This is an nRF52 board; if it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase, flash & configure" installs the current firmware.' : ""))
+      out.textContent = `Found: ${d.name ?? "a Meshtastic radio"}, running Meshtastic ${shortVer(d.fw)}. `
+        + (old ? `Out of date: current is ${shortVer(current)}. Update it before applying settings` : "Up to date.")
+        + (d.family === "nrf52" ? (old ? " (drag-and-drop, steps below)." : " If it ever needs an update, that is drag-and-drop (steps below).") : (old ? ': "Erase and install fresh" installs the current version.' : ""))
         + blank;
     }
-    else if (d.family === "nrf52") out.textContent = `${d.name ?? "An nRF52 board"}, but Meshtastic didn't answer. Install the firmware with the steps below, then use "Configure only".`;
-    else if (d.family === "esp32") out.textContent = "An ESP32 board with no Meshtastic answering (blank, or busy). Pick your exact board from the list; the USB id alone can't tell ESP32 boards apart.";
-    else out.textContent = "Couldn't tell what this is. Pick your board from the list.";
+    else if (d.family === "nrf52") out.textContent = `Found: ${d.name ?? "a radio that updates by drag-and-drop"}, but Meshtastic didn't answer. Install it with the steps below, then press "Set up my radio".`;
+    else if (d.family === "esp32") out.textContent = "Found a radio, but Meshtastic isn't answering on it (brand new, blank, or busy). Pick which radio it is from the list below; the page can't tell these apart until Meshtastic is installed.";
+    else out.textContent = "Couldn't tell what this is. Pick your radio from the list below.";
+    return d;
   } catch (e) {
-    out.textContent = e.name === "NotFoundError" ? "No device picked. If yours wasn't listed, try another USB cable: charge-only cables are the usual cause." : `Detection failed: ${e.message}`;
+    const none = e.name === "NotFoundError";
+    out.textContent = none ? "No device picked. If yours wasn't in the browser's list, try another USB cable: cables that only charge are the usual cause." : `Couldn't look at the radio: ${e.message}`;
+    if (none) $("trouble").open = true;
+    return null;
   } finally { busy(false); }
 }
 
@@ -515,8 +521,8 @@ async function firmwareGate(s, st, dev) {
     ? `This radio is on firmware ${shortVer(d.fw)}. ${s.source} needs ${need} or newer, so these settings can't be applied until it is updated. Current is ${shortVer(current)}.`
     : `This radio is on firmware ${shortVer(d.fw)}. Current is ${shortVer(current)}. Update first: older firmware can lack presets and fixes that these settings assume.`;
   $("btn-fw-anyway").hidden = !!tooOld;
-  $("btn-fw-update").textContent = s.meshOnly ? "Update it in Set up a radio" : d.family === "nrf52" ? "Show me how to update" : "Erase, update & configure";
-  $("btn-fw-anyway").textContent = s.meshOnly ? "Apply anyway" : "Configure anyway";
+  $("btn-fw-update").textContent = s.meshOnly ? "Update it in Set up a radio" : d.family === "nrf52" ? "Show me how to update" : "Erase and install the update";
+  $("btn-fw-anyway").textContent = s.meshOnly ? "Apply anyway" : "Apply settings anyway";
   $("fw-gate").hidden = false;
   const e = new Error(`Stopped before changing anything: firmware ${shortVer(d.fw)} is older than ${shortVer(tooOld ? need : current)}.`);
   e.name = "FirmwareGate";
@@ -837,7 +843,7 @@ async function verify(s) {
     tbody.appendChild(tr);
   }
   $("verify").hidden = false;
-  (allGood ? ok : warn)(allGood ? `Verification passed (${s.source}). Go say hi on the mesh.` : "Some settings didn't stick — see table.");
+  (allGood ? ok : warn)(allGood ? `Verification passed (${s.source}). The radio saved every setting.` : "Some settings didn't stick. See the table below.");
   try { await dev.disconnect(); } catch {}
   try { await port.close(); } catch {}
   return allGood;
@@ -846,9 +852,16 @@ async function verify(s) {
 // ---------- orchestration ----------
 async function run(kind) {
   const { s, problems } = readSettings();
+  $("go-confirm").hidden = true; $("done").hidden = true;
   if (problems.length) { problems.forEach(err); return; }
   if (kind === "full" && detected?.family === "nrf52") {
-    err("This is an nRF52 board. The page can't flash it: copy the firmware file onto its USB drive (steps under \"Your radio\"), then press \"Configure only\".");
+    err("This radio updates by drag-and-drop, so the page can't install onto it: copy the firmware file onto its USB drive (steps under \"Your radio\"), then press \"Just apply my settings\".");
+    return;
+  }
+  if (kind === "full" && !$("board").value && !$("localbin").files[0]) {
+    $("board-manual").open = true;
+    err("Which radio is it? Press \"Find my radio\" in step 01, or pick it from the list there. The page needs to know before it installs anything.");
+    $("board-manual").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   $("fw-gate").hidden = true;
@@ -860,22 +873,84 @@ async function run(kind) {
   try {
     if (kind === "full") {
       setStep(2, "active"); await flash(); setStep(2, "done");
-      log("Waiting for first boot (formats storage + generates keys, ~15s)…");
+      log("Waiting for the radio's first start (about 15 seconds)…");
       await sleep(15000);
     } else port = null;
     setStep(3, "active"); await pushConfig(s); setStep(3, "done");
-    setStep(4, "active"); setStep(4, (await verify(s)) ? "done" : "fail");
+    setStep(4, "active");
+    const good = await verify(s);
+    setStep(4, good ? "done" : "fail");
+    if (good && !s.meshOnly) showDone(s);
   } catch (e) {
     if (e.name === "FirmwareGate") { warn(e.message); ["2", "3", "4"].forEach((n) => setStep(n, "")); return; }
     err(e.message || String(e)); console.error(e);
     document.querySelectorAll('[data-state="active"]').forEach((el) => (el.dataset.state = "fail"));
     if (e.name === "NotFoundError" || /No port selected/i.test(e.message)) {
-      warn("No board picked. If your board wasn't in the list: try a different USB cable (charge-only cables are the #1 cause), plug directly into the computer, install the CP210x/CH9102 driver, or hold BOOT while plugging in.");
+      warn("No radio picked. If yours wasn't in the browser's list, try a different USB cable first (cables that only charge are the usual cause). More fixes are under \"Radio not showing up?\" in the Before you start box.");
+      $("trouble").open = true;
     } else if (!e.silent && /port|open|lock/i.test(e.message)) warn("Close any other tab/app using the serial port (Meshtastic desktop app, serial monitor, Arduino IDE).");
     else if (e.silent) warn("Nothing came back from the radio. Most often another program has it: close the Meshtastic desktop or web app and any other flasher tab. Otherwise unplug the radio, wait 10 seconds, plug it back in and try again. If it still says nothing, the firmware may not be running: reinstall it.");
     else if (/timed out|handshake|sync|connect|didn't finish/i.test(e.message)) warn("The board stopped answering part-way. Try another cable or USB port, then press the button again.");
   } finally { busy(false); }
 }
+
+// ---------- "Set up my radio" ----------
+// One button for newcomers. It looks at the radio (the same check as "Find my radio"), then:
+//  - Meshtastic is running: apply settings only. If it is out of date, the existing firmware stop asks what to do.
+//  - Meshtastic is not running: ask before erasing, then install. Erasing never happens on this button's press alone.
+function askInstall(title, text) {
+  $("go-confirm-title").textContent = title;
+  $("go-confirm-text").textContent = text;
+  $("go-confirm").hidden = false;
+  $("go-confirm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+async function go() {
+  $("go-confirm").hidden = true; $("fw-gate").hidden = true; $("done").hidden = true;
+  const { problems } = readSettings();
+  if (problems.length) { problems.forEach(err); return; }
+  const d = await detect();
+  if (!d) { err("Couldn't find a radio. Check the cable and try again; see \"Radio not showing up?\" in the Before you start box."); $("trouble").open = true; return; }
+  if (d.fw) return run("config"); // out of date? run() stops before changing anything and offers the update
+  if (d.updateMode || d.family === "nrf52") {
+    showNrfSteps(true);
+    err("This radio doesn't have Meshtastic running yet, and it installs by drag-and-drop. Follow the steps under \"Your radio\" (step 01), then press this button again.");
+    $("nrf-steps").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  if (!$("board").value && !$("localbin").files[0]) {
+    $("board-manual").open = true;
+    err("This radio isn't running Meshtastic yet, and the page can't tell which radio it is. Pick it from the list in step 01, then press this button again.");
+    $("board-manual").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const name = $("board").selectedOptions[0]?.textContent || "this radio";
+  askInstall("Install Meshtastic on this radio?",
+    `Meshtastic isn't answering on it, so it is new, blank, or running something else. Installing erases everything on the radio and puts the current Meshtastic for ${$("board").value ? `a ${name}` : "your own firmware file"} on it. If that isn't your radio, pick the right one in step 01 first: the wrong choice leaves it not working until it is installed again. Your browser will ask you to pick the radio once more.`);
+}
+// After a successful setup: what to do with the phone. The PIN shown is the one typed into this tab.
+function showDone(s) {
+  $("done-pair").textContent = s.conn === "ble"
+    ? `In the app, tap the radio named ${s.shortName} (${s.longName}) and type the PIN ${s.pin} when asked.`
+    : `Put your phone on the same WiFi network (${s.ssid}). In the app, connect to the radio over the network instead of Bluetooth; it is named ${s.longName}.`;
+  $("done").hidden = false;
+  $("done").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ---------- name and PIN: picked for the user, theirs to change ----------
+// The short name follows the radio name until the user types a short name of their own.
+let shortTouched = false;
+function deriveShort(long) {
+  const caps = (long.match(/\p{Lu}/gu) ?? []).slice(0, 2).join("");
+  const digits = (long.match(/\d/g) ?? []).slice(-2).join("");
+  if (caps.length === 2 && digits.length === 2) return caps + digits; // "MapleCut 45" -> "MC45"
+  return [...long.replace(/\s+/g, "")].slice(0, 4).join("");
+}
+function syncShort() {
+  if (!shortTouched) $("shortname").value = deriveShort($("longname").value.trim());
+  $("short-show").textContent = $("shortname").value.trim() || "none yet";
+}
+function newName() { const n = suggestName(); $("longname").value = n.long; shortTouched = false; $("shortname").value = n.short; syncShort(); }
+const newPin = () => ($("pin").value = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)));
 
 // ---------- factory reset ("someone gave me this radio") ----------
 // Two deliberate clicks, then a 10 second countdown inside the confirm button with Cancel beside it.
@@ -896,7 +971,7 @@ async function resetStart() {
     if (!d.fw) {
       out.textContent = d.family === "nrf52"
         ? "Meshtastic isn't answering on this radio, so it can't be reset from here. Reinstall the firmware with the drag-and-drop steps under \"Your radio\"."
-        : "Meshtastic isn't answering on this radio, so it can't be reset from here. \"Erase, flash & configure\" wipes it completely and installs fresh firmware.";
+        : "Meshtastic isn't answering on this radio, so it can't be reset from here. \"Erase and install fresh\" wipes it completely and installs Meshtastic again.";
       return;
     }
     const who = st.users[st.myNodeNum]?.longName;
@@ -947,8 +1022,8 @@ async function resetFire() {
       const where = RESET_BUTTON[pioEnv] ? ` (${RESET_BUTTON[pioEnv]})` : "";
       warn("The erase command was sent, but the radio hasn't restarted by itself.");
       out.textContent = r.gone
-        ? "The radio dropped off USB and hasn't come back. Unplug it, plug it back in, and press Detect in step 01. A blank radio shows up with no region set."
-        : `The radio took the erase command but hasn't restarted by itself; some freeze at this point. Press its reset button once${where}, wait about 20 seconds for it to start, then press Detect in step 01. A blank radio shows up with no region set.`;
+        ? "The radio dropped off USB and hasn't come back. Unplug it, plug it back in, and press Find my radio in step 01. A blank radio shows up with no region set."
+        : `The radio took the erase command but hasn't restarted by itself; some freeze at this point. Press its reset button once${where}, wait about 20 seconds for it to start, then press Find my radio in step 01. A blank radio shows up with no region set.`;
       return;
     }
     const c = r.conn ?? await connectWithRetry(4, 15000);
@@ -965,7 +1040,7 @@ async function resetFire() {
   } catch (e) {
     err(e.message || String(e));
     out.textContent = sent
-      ? `The erase command was sent, but checking the radio afterwards failed: ${e.message}. Unplug it, plug it back in, and press Detect in step 01 to see whether it is blank.`
+      ? `The erase command was sent, but checking the radio afterwards failed: ${e.message}. Unplug it, plug it back in, and press Find my radio in step 01 to see whether it is blank.`
       : `The reset didn't go through: ${e.message}. Nothing was changed; press the button to try again.`;
   } finally { resetIdle(); $("reset-confirm").hidden = true; busy(false); }
 }
@@ -1173,7 +1248,7 @@ function browserCheck() {
   const mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (!("serial" in navigator)) {
     el.className = "check bad";
-    el.innerHTML = '<span class="err">✘ This browser can\'t reach USB serial devices.</span> Open this page in desktop Chrome, Edge or Opera (or Firefox 151+).';
+    el.innerHTML = '<span class="err">✘ This browser can\'t talk to a radio over USB.</span> Open this page in Chrome, Edge or Opera on a Mac or PC (Firefox 151+ should also work).';
   } else if (!window.isSecureContext) {
     el.className = "check bad";
     el.innerHTML = '<span class="err">✘ Not a secure page.</span> Open it over https:// or http://localhost.';
@@ -1182,7 +1257,7 @@ function browserCheck() {
     el.innerHTML = '<span class="warn">! Mobile browser detected.</span> It reports USB serial support, but flashing is only tested on desktop.';
   } else {
     el.className = "check good";
-    el.innerHTML = '<span class="ok">✔ Your browser supports USB serial.</span> Next: check your cable.';
+    el.innerHTML = '<span class="ok">✔ This browser can talk to a radio over USB.</span>';
   }
 }
 
@@ -1201,7 +1276,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("usecase").onchange = renderCommunity;
   $("btn-customize").onclick = customize;
   $("usepreset").onchange = syncPresetFields;
-  $("btn-genpin").onclick = () => ($("pin").value = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)));
+  $("btn-genpin").onclick = newPin;
   document.querySelectorAll("[data-conn]").forEach((b) => (b.onclick = () => setConn(b.dataset.conn)));
   $("btn-full").onclick = () => run("full");
   $("btn-config").onclick = () => run("config");
@@ -1219,7 +1294,13 @@ window.addEventListener("DOMContentLoaded", () => {
     else run("full");
   };
   famBoot();
-  $("btn-name").onclick = () => { const n = suggestName(); $("longname").value = n.long; $("shortname").value = n.short; };
+  $("btn-name").onclick = newName;
+  $("longname").oninput = syncShort;
+  $("shortname").oninput = () => { shortTouched = true; syncShort(); };
+  newName(); newPin();
+  $("btn-go").onclick = go;
+  $("btn-go-install").onclick = () => { $("go-confirm").hidden = true; run("full"); };
+  $("btn-go-cancel").onclick = () => { $("go-confirm").hidden = true; };
   $("btn-reset").onclick = resetStart;
   $("btn-reset-go").onclick = resetArm;
   $("btn-reset-cancel").onclick = resetCancel;

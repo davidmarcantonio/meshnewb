@@ -18,8 +18,10 @@ New to Meshtastic? The plain-English guide that goes with this tool is [Meshtast
 
 Meshtastic calls its recommended release "Beta". Despite the name, that is the build meant for everyone. "Alpha" is the test build. MeshNewb only installs Beta.
 
-- **Detect my board** asks the plugged-in radio what it is and which firmware it runs. It works on any board that already has Meshtastic; a blank ESP32 can only be narrowed to "ESP32".
-- **Out-of-date firmware stops "Configure only" before anything is changed.** You can update first or configure anyway. If a community preset needs a newer firmware than the radio has, updating is the only option.
+- **Set up my radio** is the one button a newcomer needs. It looks at the radio first. If Meshtastic is running, it applies settings only. If Meshtastic isn't running, it asks before erasing and installing. It never erases on that press alone. "Erase and install fresh" and "Just apply my settings" are still there to choose by hand.
+- **A name and a Bluetooth PIN are filled in on arrival** (a made-up name, a random PIN, both made in the tab). Change either. The short name follows the radio name until you type your own.
+- **Find my radio** asks the plugged-in radio what it is and which firmware it runs. It works on any board that already has Meshtastic; a blank ESP32 can't be told apart, so the page opens the list and installs nothing until a radio is picked. No model is preselected.
+- **Out-of-date firmware stops "Just apply my settings" before anything is changed.** You can update first or apply the settings anyway. If a community preset needs a newer firmware than the radio has, updating is the only option.
 - **Factory reset** for a second-hand radio: detects the radio, asks, then counts down 10 seconds inside the confirm button with Cancel beside it. Wipes settings, channels, keys, node list and Bluetooth pairings; the firmware stays.
 - **nRF52 boards** (T-Echo, RAK4631 and others) update by drag-and-drop; the page shows the steps and then configures them.
 
@@ -37,7 +39,7 @@ Meshtastic calls its recommended release "Beta". Despite the name, that is the b
 - Loading the page makes no requests beyond its own files (HTML, JS, CSS, fonts, and the community presets under `presets/`).
 - The page contacts two hosts, and only after you press a button:
   - `api.meshtastic.org`: which firmware is the current beta.
-  - `release.meshtastic.org`: the firmware files, and only for "Erase, flash & configure".
+  - `release.meshtastic.org`: the firmware files, and only for "Erase and install fresh".
 - Requests send no referrer and no credentials.
 - Names, PIN, WiFi password and channel keys go over USB to your radio and nowhere else.
 - A `Content-Security-Policy` in `index.html` enforces all of this: `default-src 'none'`, `script-src 'self'`, and `connect-src` limited to this site itself (for the preset files) and the two hosts above. Any other request is blocked by the browser. `tests/csp_probe.py` checks this.
@@ -76,7 +78,7 @@ npm run serve          # http://localhost:8000
 | Configure | `@meshtastic/core` (over a small serial transport of our own) reads the node's current config, merge your changes in, and commit them in one edit session. `setConfig` replaces a whole section, so sending only some fields would reset the rest. |
 | Verify | After the reboot it reconnects and reads every value back. |
 
-nRF52 boards (T-Echo, RAK4631): flash the UF2 by drag-and-drop, then use "Configure only".
+nRF52 boards (T-Echo, RAK4631): flash the UF2 by drag-and-drop, then use "Set up my radio" or "Just apply my settings".
 
 ## Community presets
 

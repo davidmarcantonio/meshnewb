@@ -5,7 +5,7 @@
 
 :root {
   --bg: #161826; --surface: #232532; --tint: #2b2741; --border: #3f424d;
-  --text: #e9e9ed; --text-2: #b2b6ca; --muted: #75798c;
+  --text: #e9e9ed; --text-2: #b2b6ca; --hint: #9da1b6; --muted: #75798c;
   --accent: #9184d9; --accent-deep: #5d5294; --accent-hover: #d2cefd;
   /* Status colors are not in the brief: kept muted and used only as small marks. */
   --ok: #8fc1a3; --warn: #d9b878; --err: #e08f8f;
@@ -60,7 +60,10 @@ input[type="file"]::file-selector-button { margin-right: 10px; padding: 4px 10px
 input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.hint { font-size: 13px; color: var(--hint); margin-top: 4px; }
+/* A note is helper text the reader must not miss (who can see the name, write the PIN down). */
+.note { font-size: 14px; color: var(--text-2); margin: 6px 0 0; max-width: 72ch; }
+.note b { color: var(--text); font-weight: 500; }
 .req { color: var(--accent); }
 .callout { font-size: 13px; color: var(--text-2); border-left: 2px solid var(--accent); padding: 6px 10px; background: var(--tint); border-radius: 0 var(--radius) var(--radius) 0; margin-top: 8px; }
 details summary { cursor: pointer; color: var(--text-2); font-size: 13px; margin-top: 12px; }
@@ -76,12 +79,27 @@ button:hover { background: rgba(145, 132, 217, .12); color: var(--accent-hover);
 button.primary { border-color: var(--accent); box-shadow: 0 0 18px -6px rgba(145, 132, 217, .55); }
 button.quiet { border-color: var(--border); color: var(--text-2); }
 button.small { padding: 6px 10px; font-size: 13px; }
+/* The one button a newcomer needs on the setup tab. Filled, so it can't be mistaken for the small ones near it. */
+button.big { padding: 13px 26px; font-size: 16px; background: var(--accent-deep); border-color: var(--accent); color: #fff; }
+button.big:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.choose { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--hint); }
+/* Progress and the log appear once there is something to show. */
+.runbox { margin-top: 12px; }
+.runbox:has(#log:empty) { display: none; }
+#pin { font: 400 22px/1.2 var(--mono); letter-spacing: .22em; max-width: 12ch; }
+#short-row summary b { color: var(--text); font-weight: 500; font-family: var(--mono); }
+.card.done { border-color: rgba(143, 193, 163, .55); }
+.card.done ol { margin: 8px 0 0; padding-left: 20px; color: var(--text-2); font-size: 14px; }
+.card.done li { margin: 6px 0; }
+.card.done b { color: var(--text); font-weight: 500; }
+#trouble { margin-top: 4px; }
 button:disabled { opacity: .4; cursor: wait; }
 
 .tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
 .tabs button { flex: 1; border: 0; border-radius: 0; color: var(--text-2); font-weight: 400; }
 .tabs button.on { background: var(--tint); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
-.pinrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.pinrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+#ble-fields .pinrow { grid-template-columns: auto auto; justify-content: start; }
 
 .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-top: 10px; background: var(--bg); }
 .card table td:first-child { color: var(--muted); width: 45%; }
@@ -108,7 +126,7 @@ hr.fade { border: 0; height: 1px; background: linear-gradient(90deg, transparent
 footer.site { color: var(--muted); font-size: 12px; padding-bottom: 28px; }
 footer.site p { margin: 4px 0; max-width: 100ch; }
 footer.site code { font-family: var(--mono); color: var(--text-2); font-size: 11.5px; }
-footer.site code.hash { word-break: break-all; }
+code.hash { word-break: break-all; }
 footer.site .mark { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 footer.site .mark img { display: block; height: 44px; width: auto; }
 
@@ -120,8 +138,9 @@ footer.site .mark img { display: block; height: 44px; width: auto; }
 .check.bad { border-color: rgba(224,143,143,.6); color: var(--text); }
 .check .ok, .check .err { font-weight: 500; }
 
-.privacy-teaser { border-color: rgba(145,132,217,.45); }
-.privacy-teaser h2 .n, #privacy h2 .n { color: var(--accent); font-size: 10px; }
+p.privacy-teaser { margin: 0 0 14px; font-size: 13px; color: var(--hint); }
+p.privacy-teaser b { color: var(--text-2); font-weight: 500; }
+#privacy h2 .n { color: var(--accent); font-size: 10px; }
 .small-link { font: 400 12px var(--font); text-transform: none; letter-spacing: 0; }
 ul.plain { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
 ul.plain li { margin: 6px 0; }
@@ -131,7 +150,7 @@ ul.plain ul { padding-left: 18px; }
 #privacy h3:first-of-type { margin-top: 2px; }
 .mqtt { margin-top: 6px; }
 .mqtt .tag { font: 400 11px var(--mono); color: var(--muted); }
-details.mini summary { margin-top: 6px; font-size: 12px; }
+details.mini summary { margin-top: 8px; font-size: 13px; }
 details.mini p { font-size: 13px; color: var(--text-2); margin: 6px 0; }
 details.mini b { color: var(--text); font-weight: 500; }
 label.inline .hint { display: inline; margin: 0; }
