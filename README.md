@@ -5,7 +5,7 @@ Flash and configure a [Meshtastic](https://meshtastic.org) node from your browse
 Live at https://mesh.marcantonio.me:
 
 - `/` is the whole tool on one page, with three tabs. It opens on "Set up a radio".
-- `/radio/`, `/family/` and `/check/` are the same page opening on that tab, so older links keep working. The tab is fixed at build time; the page reads nothing from its address.
+- `/radio/`, `/join/`, `/family/` and `/check/` are the same page opening on that tab, so older links keep working. The tab is fixed at build time; the page reads nothing from its address.
 - **Set up a radio** flashes and configures one radio.
 - **Family or group channel** gives several radios the same private channel, one after another. The key is generated in the tab and kept in memory only; the page offers a one-time QR code to print when the channel is created, and never shows the key again (no link is displayed or accepted). A radio that already has the channel can be read to set up another.
 - **See how a radio is set** reads a plugged-in radio and shows how it is set: board, firmware (and whether it is out of date), region and preset, channels, Bluetooth, WiFi, MQTT. It is read-only and sends the radio no settings. Channel keys, WiFi passwords, Bluetooth PINs and admin keys are never displayed, only whether one is set.

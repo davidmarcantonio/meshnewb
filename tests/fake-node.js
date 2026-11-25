@@ -6,7 +6,7 @@ const O = window.__fakeOpts ?? {};
 const node = {
   user: create(M.UserSchema, { id: "!1a2b3c4d", longName: "Meshtastic 3c4d", shortName: "3c4d", publicKey: new Uint8Array(32).fill(7), ...(O.user ?? {}) }),
   config: {
-    device: create(C.Config_DeviceConfigSchema, { role: 0, nodeInfoBroadcastSecs: 10800 }),
+    device: create(C.Config_DeviceConfigSchema, { role: 0, nodeInfoBroadcastSecs: 10800, ...(O.device ?? {}) }),
     lora: create(C.Config_LoRaConfigSchema, { usePreset: true, region: 0, modemPreset: 0, hopLimit: 3, txEnabled: true, txPower: 0, ...(window.__fakeOpts?.lora ?? {}) }),
     bluetooth: create(C.Config_BluetoothConfigSchema, { enabled: true, mode: 0, fixedPin: 123456, ...(O.bluetooth ?? {}) }),
     network: create(C.Config_NetworkConfigSchema, { wifiEnabled: false, ntpServer: "meshtastic.pool.ntp.org", ...(O.network ?? {}) }),

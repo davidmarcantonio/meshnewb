@@ -1,12 +1,12 @@
 {
   "name": "meshnewb",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Flash and configure a Meshtastic node from the browser, with US community presets.",
   "scripts": {
     "build": "node build.mjs",
     "serve": "python3 -m http.server 8000 --directory dist",
     "build:fake-node": "esbuild tests/fake-node.js --bundle --format=iife --alias:os=./shims/node.js --alias:path=./shims/node.js --alias:util=./shims/node.js \"--banner:js=globalThis.process??={env:{},cwd:()=>\\\"\\\"};globalThis.Buffer??={isBuffer:()=>false};\" --outfile=tests/fake-node.bundle.js --log-level=warning",
-    "test": "node --test tests/summary.test.mjs && node build.mjs --presets tests/fixtures/presets && npm run build:fake-node && python3 tests/run.py \"$(node tests/mkurl.mjs)\" && python3 tests/csp_probe.py && python3 tests/family.py && python3 tests/check.py"
+    "test": "node --test tests/summary.test.mjs && node build.mjs --presets tests/fixtures/presets && npm run build:fake-node && python3 tests/run.py \"$(node tests/mkurl.mjs)\" && python3 tests/csp_probe.py && python3 tests/family.py && python3 tests/join.py && python3 tests/check.py"
   },
   "license": "GPL-3.0-only",
   "dependencies": {

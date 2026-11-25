@@ -182,7 +182,7 @@ function communitySettings() {
     source: c.name,
     minFirmware: c.minFirmware,
     region: c.lora.regionNum, usePreset: true, preset: c.lora.modemPresetNum, slot: c.lora.frequencySlot ?? 0,
-    hopLimit: u.hops, role: u.role, txPower: 0,
+    hopLimit: u.hops, role: u.role, txPower: 0, hopsStated: u.hopsStated, roleStated: u.roleStated,
     okToMqtt: $("c-okmqtt").checked, ignoreMqtt: undefined,
     nodeInfoSecs: u.nodeInfoSecs, positionSecs: u.positionSecs, smart: u.smart, telemetrySecs: u.telemetrySecs,
     channel: community.primaryChannel && (community.primaryChannel.name || community.primaryChannel.psk !== "AQ==")
@@ -280,8 +280,17 @@ function syncPresetFields() {
 }
 
 // ---------- form -> settings ----------
+// "Join a local mesh" writes a community's mesh settings and nothing personal: no name, no Bluetooth or WiFi.
+const joinPage = () => document.body.dataset.page === "join";
 function readSettings() {
   const problems = [];
+  if (joinPage()) {
+    if (community?.status === "published") return { s: { ...communitySettings(), meshOnly: true }, problems };
+    problems.push(community
+      ? `There is no preset for ${community.name} yet. Get its settings from the group (link above); this tab can only apply settings a group has published.`
+      : "Pick your state and community first.");
+    return { s: {}, problems };
+  }
   // Personal — always required
   const p = {
     longName: $("longname").value.trim(),
@@ -506,7 +515,8 @@ async function firmwareGate(s, st, dev) {
     ? `This radio is on firmware ${shortVer(d.fw)}. ${s.source} needs ${need} or newer, so these settings can't be applied until it is updated. Current is ${shortVer(current)}.`
     : `This radio is on firmware ${shortVer(d.fw)}. Current is ${shortVer(current)}. Update first: older firmware can lack presets and fixes that these settings assume.`;
   $("btn-fw-anyway").hidden = !!tooOld;
-  $("btn-fw-update").textContent = d.family === "nrf52" ? "Show me how to update" : "Erase, update & configure";
+  $("btn-fw-update").textContent = s.meshOnly ? "Update it in Set up a radio" : d.family === "nrf52" ? "Show me how to update" : "Erase, update & configure";
+  $("btn-fw-anyway").textContent = s.meshOnly ? "Apply anyway" : "Configure anyway";
   $("fw-gate").hidden = false;
   const e = new Error(`Stopped before changing anything: firmware ${shortVer(d.fw)} is older than ${shortVer(tooOld ? need : current)}.`);
   e.name = "FirmwareGate";
@@ -701,6 +711,12 @@ async function pushConfig(s) {
     if (urlLora.channelNum) s.slot = urlLora.channelNum;
   }
   // LoRa: read-modify-write. setConfig replaces the whole section.
+  if (s.meshOnly) {
+    // An existing radio keeps what the group didn't publish: its role, hop limit and TX power.
+    if (!s.roleStated) s.role = have("device").role ?? 0;
+    if (!s.hopsStated) s.hopLimit = have("lora").hopLimit ?? FW_DEFAULT.hopLimit;
+    s.txPower = have("lora").txPower ?? 0;
+  }
   const lora = s.stock ? { ...have("lora"), region: s.region, txEnabled: true } : {
     ...have("lora"), ...urlLora,
     region: s.region, txEnabled: true, usePreset: s.usePreset,
@@ -721,7 +737,8 @@ async function pushConfig(s) {
     await send(`LoRa: ${REGION_LABEL[s.region]} · ${onDefaults ? `Meshtastic defaults (${what})` : `keeping what this radio already has (${what})`}`, () => setCfg("lora", lora));
     if (!onDefaults) warn(`These are not Meshtastic's defaults (${PRESET_LABEL[PRESET.LONG_FAST]}, slot auto, ${FW_DEFAULT.hopLimit} hops): this radio was set up for a particular mesh before. Fine if that is the mesh you want. For a clean start, use "Start over" (card 05) and then set it up again.`);
   } else {
-    await send(`device: role ${ROLE_LABEL[s.role]}${s.nodeInfoSecs ? `, nodeinfo ${fmtSecs(s.nodeInfoSecs)}` : ""}`, () =>
+    if (s.meshOnly && !s.roleStated && !s.nodeInfoSecs) log(`role: keeping ${ROLE_LABEL[s.role] ?? s.role} (this group doesn't publish one)`);
+    else await send(`device: role ${ROLE_LABEL[s.role]}${s.nodeInfoSecs ? `, nodeinfo ${fmtSecs(s.nodeInfoSecs)}` : ""}`, () =>
       setCfg("device", { ...have("device"), role: s.role, ...defined({ nodeInfoBroadcastSecs: s.nodeInfoSecs }) }));
     await send(`LoRa: ${REGION_LABEL[s.region]} · ${presetName} · slot ${lora.channelNum || "auto"} · ${lora.hopLimit} hops · OK-to-MQTT ${lora.configOkToMqtt ? "on" : "off"}`, () =>
       setCfg("lora", lora));
@@ -730,7 +747,8 @@ async function pushConfig(s) {
     await send(`position: ${s.positionSecs ? "every " + fmtSecs(s.positionSecs) : "default interval"}, smart ${s.smart === undefined ? "default" : s.smart ? "on" : "off"}`, () =>
       setCfg("position", { ...have("position"), ...defined({ positionBroadcastSecs: s.positionSecs, positionBroadcastSmartEnabled: s.smart }) }));
   }
-  if (s.conn === "ble") {
+  if (s.meshOnly) log("name, Bluetooth/WiFi and PIN: not sent, left as they are");
+  else if (s.conn === "ble") {
     await send("Bluetooth: fixed PIN", () => setCfg("bluetooth", { ...have("bluetooth"), enabled: true, mode: C.Config_BluetoothConfig_PairingMode.FIXED_PIN, fixedPin: Number(s.pin) }));
     if (have("network").wifiEnabled) await send("WiFi: off (so Bluetooth works)", () => setCfg("network", { ...have("network"), wifiEnabled: false }));
   } else {
@@ -768,7 +786,7 @@ async function pushConfig(s) {
   }
 
   const me = st.users[st.myNodeNum] ?? {};
-  await send(`owner: "${s.longName}" / "${s.shortName}"`, () =>
+  if (!s.meshOnly) await send(`owner: "${s.longName}" / "${s.shortName}"`, () =>
     dev.setOwner(create(Protobuf.Mesh.UserSchema, { ...strip(me), longName: s.longName, shortName: s.shortName, isLicensed: false })));
 
   rebootDone = watchReboot(st.rebootCount);
@@ -796,14 +814,15 @@ async function verify(s) {
     ["Hop limit", String(L.hopLimit), s.stock || L.hopLimit === s.hopLimit],
     ["On community maps (OK to MQTT)", L.configOkToMqtt ? "yes" : "no", s.stock || !!L.configOkToMqtt === !!s.okToMqtt],
     ["Role", ROLE_LABEL[D.role ?? 0] ?? D.role, s.stock || (D.role ?? 0) === s.role],
-    ["Names", `${me.longName} / ${me.shortName}`, me.longName === s.longName && me.shortName === s.shortName],
+    ["Names", `${me.longName} / ${me.shortName}${s.meshOnly ? " (not changed)" : ""}`, s.meshOnly || (me.longName === s.longName && me.shortName === s.shortName)],
     ["Primary channel", st.channels[0]?.settings?.name || "public default", true],
   ];
   if (s.nodeInfoSecs) rows.push(["NodeInfo interval", fmtSecs(D.nodeInfoBroadcastSecs), D.nodeInfoBroadcastSecs === s.nodeInfoSecs]);
   if (s.positionSecs) rows.push(["Position interval", fmtSecs(P.positionBroadcastSecs), P.positionBroadcastSecs === s.positionSecs]);
   if (s.smart !== undefined) rows.push(["Smart position", String(P.positionBroadcastSmartEnabled), P.positionBroadcastSmartEnabled === s.smart]);
   if (s.telemetrySecs) rows.push(["Telemetry interval", fmtSecs(T.deviceUpdateInterval), T.deviceUpdateInterval === s.telemetrySecs]);
-  if (s.conn === "ble") rows.push(["Bluetooth", `${C.Config_BluetoothConfig_PairingMode[B.mode]} ${B.fixedPin}`, B.mode === 1 && B.fixedPin === Number(s.pin)]);
+  if (s.meshOnly) rows.push(["Connection", `${N.wifiEnabled ? "WiFi" : B.enabled === false ? "Bluetooth off" : "Bluetooth"} (not changed)`, true]);
+  else if (s.conn === "ble") rows.push(["Bluetooth", `${C.Config_BluetoothConfig_PairingMode[B.mode]} ${B.fixedPin}`, B.mode === 1 && B.fixedPin === Number(s.pin)]);
   else rows.push(["WiFi", `${N.wifiEnabled ? "on" : "off"} → ${N.wifiSsid}`, N.wifiEnabled && N.wifiSsid === s.ssid]);
 
   const tbody = $("verify").querySelector("tbody");
@@ -837,7 +856,7 @@ async function run(kind) {
   busy(true);
   $("verify").hidden = true;
   ["2", "3", "4"].forEach((n) => setStep(n, ""));
-  log(`Plan: ${s.source}${mode === "community" ? ` · ${USE_CASES[$("usecase").value]}` : ""}`);
+  log(`Plan: ${s.source}${s.meshOnly || mode === "community" ? ` · ${USE_CASES[$("usecase").value]}` : ""}${s.meshOnly ? " · mesh settings only" : ""}`);
   try {
     if (kind === "full") {
       setStep(2, "active"); await flash(); setStep(2, "done");
@@ -1138,13 +1157,13 @@ async function checkRun() {
 
 // ---------- tabs ----------
 // The page's three jobs are tabs. Which one shows is body[data-page]; app.css hides every part that doesn't name it.
-// The starting tab is baked into the HTML at build time (/ and /radio/, /family/, /check/); nothing is read from the address.
+// The starting tab is baked into the HTML at build time (/ and /radio/, /join/, /family/, /check/); nothing is read from the address.
 let presetsAsked = false;
 function showPage(name) {
-  if (!["radio", "family", "check"].includes(name)) return;
+  if (!["radio", "join", "family", "check"].includes(name)) return;
   document.body.dataset.page = name;
   document.querySelectorAll(".pagetabs button").forEach((t) => { const on = t.dataset.tab === name; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; });
-  if (name === "radio" && !presetsAsked) { presetsAsked = true; loadPresetIndex(); }
+  if ((name === "radio" || name === "join") && !presetsAsked) { presetsAsked = true; loadPresetIndex(); }
 }
 
 // ---------- browser check ----------
@@ -1186,6 +1205,7 @@ window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-conn]").forEach((b) => (b.onclick = () => setConn(b.dataset.conn)));
   $("btn-full").onclick = () => run("full");
   $("btn-config").onclick = () => run("config");
+  $("btn-join").onclick = () => run("config");
 
   renderCommunity(); syncPresetFields(); setMode("standard");
   $("btn-find-mesh").onclick = () => setMode("community");
@@ -1194,7 +1214,8 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-fw-anyway").onclick = async () => { fwOverride = true; try { await run("config"); } finally { fwOverride = false; } };
   $("btn-fw-update").onclick = () => {
     $("fw-gate").hidden = true;
-    if (detected?.family === "nrf52") { showNrfSteps(true); $("nrf-steps").scrollIntoView({ behavior: "smooth", block: "center" }); }
+    if (joinPage()) { showPage("radio"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    else if (detected?.family === "nrf52") { showNrfSteps(true); $("nrf-steps").scrollIntoView({ behavior: "smooth", block: "center" }); }
     else run("full");
   };
   famBoot();

@@ -137,7 +137,10 @@ details.mini b { color: var(--text); font-weight: 500; }
 label.inline .hint { display: inline; margin: 0; }
 
 /* One template, three pages: /radio/, /family/ and /check/. Each hides the parts that don't name it. */
-body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="family"] [data-only]:not([data-only~="family"]), body[data-page="check"] [data-only]:not([data-only~="check"]) { display: none; }
+body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="family"] [data-only]:not([data-only~="family"]), body[data-page="check"] [data-only]:not([data-only~="check"]), body[data-page="join"] [data-only]:not([data-only~="join"]) { display: none; }
+/* Join a local mesh: always the community picker, whatever mode the Set up tab was left in. */
+body[data-page="join"] #panel-community { display: block !important; }
+body[data-page="join"] #panel-standard, body[data-page="join"] #panel-manual, body[data-page="join"] #btn-customize { display: none !important; }
 #check-flags ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--text); }
 #check-flags li { margin: 6px 0; }
 #check-out h3 { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 4px; }
@@ -146,16 +149,16 @@ body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="f
 #check-out table.kv td:first-child { color: var(--muted); width: 38%; }
 #fam-qr { background: #fff; border-radius: 6px; margin-top: 8px; image-rendering: pixelated; }
 /* The three tabs at the top. They replace the old landing page's cards. */
-.pagetabs { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
-.pagetabs button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; cursor: pointer; padding: 14px 16px; border-right: 1px solid var(--border); color: var(--text-2); }
-.pagetabs button:last-child { border-right: 0; }
+.pagetabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 18px; }
+.pagetabs button { all: unset; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; cursor: pointer; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text-2); }
+.pagetabs .ico { font-style: normal; margin-right: 8px; }
 .pagetabs button b { display: block; font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
 .pagetabs button span { font-size: 13px; color: var(--muted); }
 .pagetabs button:hover:not(:disabled) { background: var(--tint); }
 .pagetabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* Keyed on the page, not on script state, so the right tab is marked from the first paint. */
-body[data-page="radio"] .pagetabs [data-tab="radio"], body[data-page="family"] .pagetabs [data-tab="family"], body[data-page="check"] .pagetabs [data-tab="check"] { background: var(--tint); box-shadow: inset 0 -3px 0 var(--accent); }
+body[data-page="radio"] .pagetabs [data-tab="radio"], body[data-page="family"] .pagetabs [data-tab="family"], body[data-page="check"] .pagetabs [data-tab="check"], body[data-page="join"] .pagetabs [data-tab="join"] { background: var(--tint); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
 .pagetabs button:disabled { cursor: not-allowed; opacity: .55; }
 .tabintro { margin-top: 14px; }
 .tabintro p b { color: var(--text); font-weight: 500; }
-@media (max-width: 640px) { .pagetabs { grid-template-columns: 1fr; } .pagetabs button { border-right: 0; border-bottom: 1px solid var(--border); } .pagetabs button:last-child { border-bottom: 0; } }
+@media (max-width: 640px) { .pagetabs { grid-template-columns: 1fr; } }

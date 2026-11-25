@@ -16,14 +16,16 @@
   <div class="eyebrow">Meshtastic · from your browser</div>
   <h1>MeshNewb<span class="dot">.</span> get your radios talking</h1>
   <p>Meshtastic radios send text messages to each other with no cell service and no internet. This page sets them up over a USB cable. Pick what you want to do.</p>
-  <!-- One page, three tabs. A tab only changes which parts show (body data-page); nothing is read from the address. -->
+  <!-- One page, four choices in a 2x2 grid (still tabs to a screen reader). A tab only changes which parts show (body data-page); nothing is read from the address. -->
   <div class="pagetabs" role="tablist" aria-label="What do you want to do?">
-    <button type="button" role="tab" data-tab="radio"><b>Set up a radio</b><span>Firmware plus the right settings</span></button>
-    <button type="button" role="tab" data-tab="family"><b>Family or group channel</b><span>One private channel, several radios</span></button>
-    <button type="button" role="tab" data-tab="check"><b>See how a radio is set</b><span>Look at its settings, change nothing</span></button>
+    <button type="button" role="tab" data-tab="radio"><b><i class="ico" aria-hidden="true">📻</i>Set up a radio</b><span>Firmware plus the right settings</span></button>
+    <button type="button" role="tab" data-tab="join"><b><i class="ico" aria-hidden="true">📡</i>Join a local mesh</b><span>Mesh settings only, keeps the rest</span></button>
+    <button type="button" role="tab" data-tab="family"><b><i class="ico" aria-hidden="true">👥</i>Family or group channel</b><span>One private channel, several radios</span></button>
+    <button type="button" role="tab" data-tab="check"><b><i class="ico" aria-hidden="true">🔍</i>See how a radio is set</b><span>Look at its settings, change nothing</span></button>
   </div>
   <div class="tabintro">
     <p data-only="radio"><b>Set up a radio.</b> For a new radio, or one that needs the right settings for your area. Start with the standard settings or pick your local mesh, add your name and PIN, plug in, press one button. Settings go from this tab to the radio over USB and nowhere else.</p>
+    <p data-only="join"><b>Join a local mesh.</b> For a radio that is already set up. Pick the mesh near you, plug in, press one button. This tab changes only the radio's mesh settings: modem preset, frequency slot, hop limit and whatever else that group publishes. Its name, Bluetooth or WiFi, PIN and private channels stay as they are.</p>
     <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
     <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
     <div class="fw" data-only="radio">Firmware: <b id="fwver">current beta, checked when you flash</b> · tested with {{FW_TESTED}}</div>
@@ -156,9 +158,10 @@
     </section>
 
     <!-- ===== Radio: community preset or manual ===== -->
-    <section class="panel" data-only="radio">
-      <h2><span><span class="n">03</span>Radio settings</span></h2>
-      <div class="tabs"><button type="button" data-mode="standard" class="on">Standard settings</button><button type="button" data-mode="community">My local mesh</button><button type="button" data-mode="manual">Set everything manually</button></div>
+    <section class="panel" data-only="radio join">
+      <h2 data-only="radio"><span><span class="n">03</span>Radio settings</span></h2>
+      <h2 data-only="join"><span><span class="n">01</span>Your local mesh</span><small>pick the group near you</small></h2>
+      <div class="tabs" data-only="radio"><button type="button" data-mode="standard" class="on">Standard settings</button><button type="button" data-mode="community">My local mesh</button><button type="button" data-mode="manual">Set everything manually</button></div>
 
       <div id="panel-standard">
         <div class="card">
@@ -269,8 +272,11 @@
     </section>
 
 
-    <section class="panel" data-only="radio family">
+    <section class="panel" data-only="radio family join">
       <h2 data-only="radio"><span><span class="n">04</span>Go</span></h2>
+      <h2 data-only="join"><span><span class="n">02</span>Apply</span><small>the radio restarts once</small></h2>
+      <p class="hint" data-only="join">The radio must be running Meshtastic. Only the mesh settings shown above are written. The radio's name, Bluetooth or WiFi, PIN and private channels are not sent and not changed. Afterwards the page reads the radio back and shows what it found.</p>
+      <div class="buttons" data-only="join"><button type="button" class="act primary" id="btn-join">Apply these mesh settings</button></div>
       <h2 data-only="family"><span><span class="n">02</span>Progress</span></h2>
       <ol class="steps" data-only="radio">
         <li data-step="1" data-state="done">Settings</li><li data-step="2">Flash</li><li data-step="3">Configure</li><li data-step="4">Verify</li>
