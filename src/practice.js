@@ -126,12 +126,12 @@ export function initPractice(root) {
       n = 5; done = delivered;
       text = !delivered ? "Sending. Watch the small line under your message."
         : lesson === "channel" ? 'Sent. "Delivered to mesh" means another radio heard it and passed it on. It does not tell you a person has read it.'
-        : 'Sent. "Delivered to recipient" means their radio has it. A person only shows up in this list after your two radios have heard each other.';
+        : 'Sent. "Delivered to recipient" means their radio has it. Before you try this for real, read "Before you can message one person" in section 02.';
     } else if (screen === "home") {
       target = `[data-go="${listScreen}"]`; text = lesson === "channel" ? "Tap Channels." : "Tap Direct Messages.";
     } else if (screen === listScreen) {
       n = 2; target = `[data-go="chat:${want}"]`;
-      text = lesson === "channel" ? "Tap Family. The green lock means only your group can read it." : "Tap the person you want. Here, Maple 17.";
+      text = lesson === "channel" ? "Tap Family. The green lock means only your group can read it." : "Tap the person you want. Here, Maple 17. On your own phone a person is listed only after your radios have heard each other: section 02 below has the steps.";
     } else if (screen === "chat:" + want) {
       if (box && box.value.trim()) { n = 4; target = "#pr-send"; text = "Tap the blue arrow to send."; }
       else { n = 3; target = "#pr-box"; text = "Tap the Message box and type a few words."; }

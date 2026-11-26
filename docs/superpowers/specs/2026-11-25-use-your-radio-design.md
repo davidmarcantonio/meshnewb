@@ -30,3 +30,12 @@
 **My calls, not David's:** the made-up names (Otter 42, Bison 08, Maple 17, in the style of "Suggest a name") and messages; iPhone as the phone drawn, Android in one paragraph; the wording of every step; which five statuses to list.
 
 **Tests:** tests/use.py (both lessons, wrong turn, empty send, 200-byte cap, typing survives a reply, links in, keyboard, no outside request, no CSP report, phone width and sticky step). Not covered: a real phone side by side with the drawing. David should compare the tab bar and lock icons with his iPhone once.
+
+## 0.16.1: the direct-message prerequisite
+
+David, after trying the live tab: "I think we need prerequisite for that. The guide assumes you already have direct message capability." He is right: the lesson opened on a contact list that already had people in it.
+
+- New card in 02, "Before you can message one person": same mesh settings, both radios on in the same place, look in Nodes, then start the message (Direct Messages, or touch and hold in Nodes and choose Message). A hint covers "in Nodes but not in Direct Messages": Exchange User Info.
+- The lesson's contact-list step and its last line now point at that card.
+- From the app's source: the contact list leaves out nodes it holds no public key for (UserList), the node screen says "This node has not shared a public key, so direct messages to it cannot be sent. Exchange User Info asks for one." (NodeDetail), and the node list's hold menu has Message (NodeList).
+- My call: "give it a few minutes" for how long two radios take to hear each other. Not measured.

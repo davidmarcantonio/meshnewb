@@ -197,6 +197,10 @@ body[data-page="use"] #prereq, body[data-page="use"] .privacy-teaser { display: 
 /* ===== Use your radio: steps for the real phone, and a pretend phone to practice on (src/practice.js). ===== */
 .use-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .use-cols .card p { margin: 0; }
+#dm-first > p:first-child { margin: 0; }
+#dm-first b { color: var(--text); font-weight: 500; }
+#dm-first ol { margin: 8px 0 2px; padding-left: 22px; color: var(--text-2); font-size: 15px; }
+#dm-first li { margin: 8px 0; }
 .use-cols .card b { color: var(--text); font-weight: 500; }
 .use-cols ol { margin: 8px 0 2px; padding-left: 22px; color: var(--text-2); font-size: 15px; }
 .use-cols li { margin: 8px 0; }

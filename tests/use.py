@@ -54,10 +54,15 @@ try:
     pg.click("#pr-next")
     assert pg.get_attribute("#practice [data-lesson=dm]", "aria-pressed") == "true" and "Direct Messages" in coach(pg)
     pg.click("#practice .target"); assert pg.inner_text("#practice .big") == "Contacts (3)"
+    assert "only after your radios have heard each other" in coach(pg), "the lesson says the list is not automatic"
     pg.click("#practice .target"); pg.fill("#pr-box", "Was it you?"); pg.press("#pr-box", "Enter")
     pg.wait_for_selector("#practice .mine .st.ok")
     assert pg.inner_text("#practice .mine .st") == "Delivered to recipient"
-    assert "after your two radios have heard each other" in coach(pg)
+    assert "Before you can message one person" in coach(pg)
+    # The prerequisite is on the page: a person is listed only once the radios have met, and how to make that happen.
+    card = pg.inner_text("#dm-first")
+    assert all(w in card for w in ["only after your radio has heard theirs", "Nodes", "Exchange User Info"]), card
+    assert pg.locator("#dm-first ol li").count() == 4 and pg.locator('section[data-only~=use] a[href="#dm-first"]').count() == 1
     # One message holds 200 bytes, as in the app; an emoji is four of them.
     pg.fill("#pr-box", "x" * 300); assert pg.inner_text("#pr-bytes") == "200" and len(pg.input_value("#pr-box")) == 200
     pg.fill("#pr-box", "😀" * 60); assert pg.inner_text("#pr-bytes") == "200"
