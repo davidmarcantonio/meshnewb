@@ -250,7 +250,8 @@ body[data-page="use"] ul.plain b { color: var(--text); font-weight: 500; }
 .practice .list > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 12px 14px; border-top: 1px solid var(--iline); background: var(--irow); }
 .practice .list > button:first-child { border-top: 0; }
 .practice .list > button:active { background: #e5e5ea; }
-.practice .grow { flex: 1; min-width: 0; display: block; }
+.practice .grow { flex: 1; min-width: 0; display: block; overflow: hidden; }
+.practice .pr-phone, .practice .phone, .practice .screen { min-width: 0; max-width: 100%; }
 .practice .h { display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .practice .prev { display: block; font-size: 14px; color: var(--igray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .practice .ct { display: flex; align-items: center; justify-content: center; flex: none; width: 42px; height: 42px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 600; }
@@ -308,7 +309,8 @@ body[data-page="use"] ul.plain b { color: var(--text); font-weight: 500; }
 }
 @media (max-width: 760px) {
   .use-cols { grid-template-columns: 1fr; }
-  .practice { grid-template-columns: 1fr; gap: 12px; }
+  /* minmax(0, ...): a plain 1fr track grows to fit its widest child, and a one-line message preview is very wide. */
+  .practice { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   /* On a phone the step and the pretend phone fit on one screen together: the drawing shrinks to the space there is
      (svh: the height with Safari's bars showing). practice.js scrolls the step to the top after each tap. The step is
      not sticky: on a real iPhone a sticky step slid over the pretend phone's top bar and hid its back button. */
