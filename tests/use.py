@@ -1,6 +1,7 @@
 # "Use your radio" tab: the guide and the pretend phone. Run after build.
 # The rules under test: the lesson can be finished by following the orange outline, a wrong turn is recoverable,
 # nothing leaves the page, the Content-Security-Policy is not tripped (no inline styles), and it fits a phone.
+# Chrome only: the iPhone-specific checks were done by hand in the iOS Simulator (see the design doc).
 import subprocess, time
 from playwright.sync_api import sync_playwright
 srv = subprocess.Popen(["python3","-m","http.server","8771","--directory","dist"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
@@ -96,9 +97,15 @@ try:
     # ---- a phone: this is the tab people open on one. Nothing runs off the side, and the step stays in view ----
     pg = page(width=360, height=740)
     assert pg.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "fits a phone"
-    pg.locator("#pr-screen").scroll_into_view_if_needed(); pg.evaluate("window.scrollBy(0, 300)"); pg.wait_for_timeout(100)
-    box = pg.locator("#pr-coach").bounding_box()
-    assert 0 <= box["y"] < 60, f"the step sticks to the top while the phone scrolls: {box}"
+    # The step and the pretend phone fit on one screen together, and the step never covers the phone's top bar
+    # (a sticky step did, on a real iPhone: it hid the back button the step was telling the reader to tap).
+    pg.evaluate("window.scrollBy(0, 5000)"); pg.locator("#pr-screen").scroll_into_view_if_needed()
+    pg.click("#practice [data-go=contacts]"); pg.wait_for_timeout(700)      # a wrong turn: the step says "go back"
+    step, phone, back = [pg.locator(s).bounding_box() for s in ["#pr-coach", "#practice .phone", "#practice .back"]]
+    assert step["y"] >= 0 and phone["y"] + phone["height"] <= 740, f"step and phone both on screen: {step} {phone}"
+    assert step["y"] + step["height"] <= phone["y"], "the step sits above the phone, not over it"
+    assert back["y"] >= step["y"] + step["height"], "the back button is not covered"
+    pg.click("#practice .back"); pg.evaluate("window.scrollTo(0, 0)")
     assert pg.locator("#pr-screen").evaluate("e => e.getBoundingClientRect().top + window.scrollY") < 1300, "the pretend phone is not buried under the tab buttons"
     for sel in ["#practice .lessons button", "#practice .list > button"]:
       assert pg.locator(sel).first.bounding_box()["height"] >= 44, sel + " is big enough to tap"

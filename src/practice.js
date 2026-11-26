@@ -40,6 +40,15 @@ export function initPractice(root) {
   const q = (sel) => root.querySelector(sel);
   const elScreen = q("#pr-screen"), elCoach = q("#pr-coach"), lessonBtns = [...root.querySelectorAll("[data-lesson]")];
   let chats, lesson = "channel", screen = "home", sentIn = null, delivered = false, timers = [], coachHtml = "";
+  // On a phone the step sits above the pretend phone. After a tap, bring the pair back into view if either end has
+  // slipped off the screen. Never on load, and never while typing (the keyboard owns the scroll position then).
+  const narrow = window.matchMedia("(max-width: 760px)");
+  function keepInView() {
+    if (!narrow.matches || document.activeElement === q("#pr-box")) return;
+    const top = elCoach.getBoundingClientRect().top, bottom = root.querySelector(".phone").getBoundingClientRect().bottom;
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    if (top < 0 || bottom > h) elCoach.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
 
   const last = (key) => { const m = chats[key].msgs; return m.length ? m[m.length - 1][1] : ""; };
   const nav = (label, to, title) => `<div class="nav"><button type="button" class="back" data-go="${to}">${I.back}${label}</button><span class="t">${title}</span><span class="sp"></span></div>`;
@@ -57,6 +66,7 @@ export function initPractice(root) {
     const now = q("#pr-box");
     if (now && keep) { now.value = keep; now.dispatchEvent(new Event("input")); }
     if (now && had) now.focus();
+    keepInView();
   }
   function reset(l) {
     timers.forEach(clearTimeout); timers = [];
@@ -147,6 +157,6 @@ export function initPractice(root) {
     if (done) { q("#pr-next").onclick = () => reset(lesson === "channel" ? "dm" : "channel"); q("#pr-again").onclick = () => reset(lesson); }
   }
 
-  lessonBtns.forEach((b) => (b.onclick = () => reset(b.dataset.lesson)));
+  lessonBtns.forEach((b) => (b.onclick = () => { reset(b.dataset.lesson); keepInView(); }));
   reset("channel");
 }
