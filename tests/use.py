@@ -54,10 +54,21 @@ try:
     pg.click("#pr-next")
     assert pg.get_attribute("#practice [data-lesson=dm]", "aria-pressed") == "true" and "Direct Messages" in coach(pg)
     pg.click("#practice .target"); assert pg.inner_text("#practice .big") == "Contacts (3)"
+    assert "only after your radios have heard each other" in coach(pg), "the lesson says the list is not automatic"
     pg.click("#practice .target"); pg.fill("#pr-box", "Was it you?"); pg.press("#pr-box", "Enter")
     pg.wait_for_selector("#practice .mine .st.ok")
     assert pg.inner_text("#practice .mine .st") == "Delivered to recipient"
-    assert "after your two radios have heard each other" in coach(pg)
+    assert "First, get them on your list" in coach(pg)
+    # The prerequisite is on the page: a person is listed only once the radios have met, and how to make that happen.
+    sec = pg.locator("section[data-only~=use]", has=pg.locator("#dm-first"))
+    text = " ".join(sec.text_content().split())
+    assert all(w in text for w in ["only once your radio knows theirs", "Share Contact", "Add Contact", "Nodes", "Exchange User Info", "Request User Info"]), text
+    # Getting someone on the list comes before the steps that assume they are on it.
+    assert text.index("First, get them on your list") < text.index("Then send") < text.index("Tap Direct Messages")
+    assert sec.locator("ol.taps li").count() == 4
+    # The page says up front that there are two kinds of message, before any steps.
+    kinds = pg.inner_text("section[data-only~=use] .kinds")
+    assert "group chat" in kinds and "goes to one radio" in kinds
     # One message holds 200 bytes, as in the app; an emoji is four of them.
     pg.fill("#pr-box", "x" * 300); assert pg.inner_text("#pr-bytes") == "200" and len(pg.input_value("#pr-box")) == 200
     pg.fill("#pr-box", "😀" * 60); assert pg.inner_text("#pr-bytes") == "200"
@@ -88,6 +99,7 @@ try:
     pg.locator("#pr-screen").scroll_into_view_if_needed(); pg.evaluate("window.scrollBy(0, 300)"); pg.wait_for_timeout(100)
     box = pg.locator("#pr-coach").bounding_box()
     assert 0 <= box["y"] < 60, f"the step sticks to the top while the phone scrolls: {box}"
+    assert pg.locator("#pr-screen").evaluate("e => e.getBoundingClientRect().top + window.scrollY") < 1300, "the pretend phone is not buried under the tab buttons"
     for sel in ["#practice .lessons button", "#practice .list > button"]:
       assert pg.locator(sel).first.bounding_box()["height"] >= 44, sel + " is big enough to tap"
     pg.evaluate("window.scrollTo(0, 0)"); pg.screenshot(path="tests/screenshot.png", full_page=True)

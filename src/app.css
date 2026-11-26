@@ -200,6 +200,16 @@ body[data-page="use"] #prereq, body[data-page="use"] .privacy-teaser { display: 
 .use-cols .card b { color: var(--text); font-weight: 500; }
 .use-cols ol { margin: 8px 0 2px; padding-left: 22px; color: var(--text-2); font-size: 15px; }
 .use-cols li { margin: 8px 0; }
+.use-cols .card .hint { display: inline; margin: 0 0 0 4px; }
+.kinds .card .note { margin-top: 6px; }
+.kinds .card p.hint { display: block; margin: 8px 0 0; }
+/* The real-phone steps: the same size as body text and well spaced, for a reader following along with a phone in the other hand. */
+ol.taps { margin: 10px 0 4px; padding-left: 24px; color: var(--text-2); font-size: 16px; max-width: 60ch; }
+ol.taps li { margin: 10px 0; padding-left: 4px; }
+ol.taps li::marker { color: var(--accent); font-weight: 500; }
+ol.taps b, section[data-only~="use"] .note b, section[data-only~="use"] .hint b { color: var(--text); font-weight: 500; }
+section[data-only~="use"] h3 { margin: 18px 0 2px; font-size: 16px; font-weight: 500; color: var(--text); scroll-margin-top: 12px; }
+section[data-only~="use"] h3:first-of-type { margin-top: 6px; }
 table.statuses { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.statuses th, table.statuses td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); }
 table.statuses th { font-weight: 500; color: var(--text); width: 34%; }
@@ -281,6 +291,16 @@ body[data-page="use"] ul.plain b { color: var(--text); font-weight: 500; }
 .practice .send.target, .practice .compose input.target { outline-offset: 2px; }
 @keyframes pr-pulse { 50% { outline-color: rgba(255, 159, 10, .25); } }
 @media (prefers-reduced-motion: reduce) { .practice .target { animation: none; } }
+/* On a phone this is the tab people came for, so the five choices shrink to a compact grid and the guide starts sooner. */
+@media (max-width: 640px) {
+  body[data-page="use"] .pagetabs { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  body[data-page="use"] .pagetabs button { padding: 10px 12px; }
+  body[data-page="use"] .pagetabs button b { font-size: 14px; margin: 0; }
+  body[data-page="use"] .pagetabs button span { display: none; }
+  body[data-page="use"] header.site > p { display: none; }
+  .kinds .card p.hint { display: none; }
+  .kinds { gap: 8px; }
+}
 @media (max-width: 760px) {
   .use-cols { grid-template-columns: 1fr; }
   .practice { grid-template-columns: 1fr; gap: 12px; }

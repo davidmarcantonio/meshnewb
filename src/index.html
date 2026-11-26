@@ -51,7 +51,7 @@
     <p data-only="join"><b>Join a local mesh.</b> For a radio that is already set up. Pick the mesh near you, plug in, press one button. This tab changes only the radio's mesh settings: modem preset, frequency slot, hop limit and whatever else that group publishes. Its name, Bluetooth or WiFi, PIN and private channels stay as they are.</p>
     <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
     <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
-    <p data-only="use"><b>Use your radio.</b> Your radio is set up. Here is how to send a message with the Meshtastic app on your phone: to your family or group channel, and to one person. Practice on the pretend phone first. No cable needed, and this part works on a phone too.</p>
+    <p data-only="use"><b>Use your radio.</b> Your radio is set up. Here is how to send a message from the Meshtastic app on your phone. No cable needed, and this part works on a phone too.</p>
   </div>
 </header>
 
@@ -78,8 +78,24 @@
 <main>
     <!-- ===== Use your radio (use page only). Nothing here talks to a radio or the network: the phone is drawn by practice.js. ===== -->
     <section class="panel" data-only="use">
+      <h2><span>Two kinds of message</span><small>pick by who should read it</small></h2>
+      <div class="use-cols kinds">
+        <div class="card">
+          <p><b>To your whole group</b></p>
+          <p class="note">A <b>channel</b> is a group chat. Everyone whose radio has the channel sees the message. You are not told who has read it.</p>
+          <p class="hint">Good for: "Is everyone OK?"</p>
+        </div>
+        <div class="card">
+          <p><b>To one person</b></p>
+          <p class="note">A <b>direct message</b> goes to one radio. Nobody else can read it, and you are told when their radio has it. The person has to be on your list first.</p>
+          <p class="hint">Good for: "Call me when you can."</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-only="use">
       <h2><span><span class="n">01</span>Practice on a pretend phone</span><small>nothing is sent anywhere</small></h2>
-      <p class="note">Follow the orange outline. Tap the wrong thing and nothing breaks: the next step tells you how to get back.</p>
+      <p class="note">Follow the orange outline. A wrong tap breaks nothing.</p>
       <div class="practice" id="practice">
         <div class="pr-side">
           <div class="lessons" role="group" aria-label="Pick what to practice">
@@ -106,45 +122,67 @@
     </section>
 
     <section class="panel" data-only="use">
-      <h2><span><span class="n">02</span>Now on your real phone</span><small>the same taps, for real</small></h2>
+      <h2><span><span class="n">02</span>Message your group, for real</span><small>your private channel</small></h2>
       <p class="note">Switch your radio on and open the Meshtastic app. The <b>Connect</b> tab shows whether the app has found your radio.</p>
-      <div class="use-cols">
-        <div class="card">
-          <p><b>Message your family or group channel</b></p>
-          <ol>
-            <li>Tap <b>Messages</b> at the bottom.</li>
-            <li>Tap <b>Channels</b>.</li>
-            <li>Tap your channel's name. A green lock beside it means only your group can read it.</li>
-            <li>Type a short message and tap the blue arrow.</li>
-          </ol>
-        </div>
-        <div class="card">
-          <p><b>Message one person</b></p>
-          <ol>
-            <li>Tap <b>Messages</b> at the bottom.</li>
-            <li>Tap <b>Direct Messages</b>.</li>
-            <li>Tap the person's name.</li>
-            <li>Type a short message and tap the blue arrow.</li>
-          </ol>
-        </div>
-      </div>
+      <ol class="taps">
+        <li>Tap <b>Messages</b> at the bottom.</li>
+        <li>Tap <b>Channels</b>.</li>
+        <li>Tap your channel's name. A green lock beside it means only your group can read it.</li>
+        <li>Type a short message and tap the blue arrow.</li>
+      </ol>
       <div class="callout">The channel called <b>Primary Channel</b> with a yellow open lock is the public one. Anyone nearby with a radio can read what is sent there. Keep family talk on your own channel.</div>
-      <p class="hint">On an Android phone the app looks a little different: the Messages tab lists your channels and conversations together. Tap one, type, and tap Send. To start a message to someone new, touch and hold their name in the list of nodes and choose Message.</p>
       <p class="hint">No private channel yet? <a href="{{ROOT}}family/" data-goto="family">Family or group channel</a> puts one on each radio.</p>
     </section>
 
     <section class="panel" data-only="use">
-      <h2><span><span class="n">03</span>Did it go through?</span><small>read the small line under your message</small></h2>
+      <h2><span><span class="n">03</span>Message one person, for real</span><small>two parts: get them on your list, then send</small></h2>
+      <h3 id="dm-first">First, get them on your list</h3>
+      <p class="note">Someone is listed under Direct Messages only once your radio knows theirs. An empty list on day one is normal. There are two ways to fill it:</p>
+      <div class="use-cols">
+        <div class="card">
+          <p><b>Fastest: scan their code</b> <span class="hint">when you are together</span></p>
+          <ol>
+            <li>On <b>their</b> phone: tap <b>Nodes</b>, tap their own radio's name, then <b>Actions</b> and <b>Share Contact</b>. A square code appears.</li>
+            <li>On <b>your</b> phone: point the camera at the code and open the Meshtastic link it finds.</li>
+            <li>Tap <b>Add Contact</b>.</li>
+            <li>Swap, so they have you too.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <p><b>Or let the radios find each other</b> <span class="hint">no tapping, takes longer</span></p>
+          <ol>
+            <li>Give both radios the same mesh settings. Two radios set up on this site with the same choice already have them.</li>
+            <li>Switch both on in the same place and leave them on. Radios announce themselves now and then, so give it a few minutes.</li>
+            <li>Tap <b>Nodes</b>. When their radio's name is in that list, yours has heard it.</li>
+          </ol>
+        </div>
+      </div>
+      <p class="hint">In Nodes but still not in Direct Messages? Tap their name in Nodes and choose <b>Exchange User Info</b>. That asks their radio for the key that keeps your messages private. You only do this once per person.</p>
+      <h3>Then send</h3>
+      <ol class="taps">
+        <li>Tap <b>Messages</b> at the bottom.</li>
+        <li>Tap <b>Direct Messages</b>.</li>
+        <li>Tap the person's name.</li>
+        <li>Type a short message and tap the blue arrow.</li>
+      </ol>
+      <p class="hint">Shortcut: in Nodes, touch and hold their name and choose <b>Message</b>.</p>
+      <details class="mini"><summary>Using an Android phone?</summary>
+        <p>The steps are the same; a few names differ. The Messages tab lists your channels and your direct messages together. To scan someone's code, tap the import button on the node list and choose <b>Scan Shared Contact QR Code</b>. To show yours, open a radio in the node list and tap <b>Share Contact</b>. Where the iPhone says Exchange User Info, Android says <b>Request User Info</b>.</p>
+      </details>
+    </section>
+
+    <section class="panel" data-only="use">
+      <h2><span><span class="n">04</span>Did it go through?</span><small>read the small line under your message</small></h2>
       <table class="statuses"><tbody>
         <tr><th scope="row">Sending...</th><td>Your radio is still trying. Wait; this is slower than a normal text.</td></tr>
-        <tr><th scope="row">Delivered to mesh</th><td>Channel messages. Another radio heard it and passed it on. It does not tell you a person has read it.</td></tr>
+        <tr><th scope="row">Delivered to mesh</th><td>Group messages. Another radio heard it and passed it on. It does not tell you a person has read it.</td></tr>
         <tr><th scope="row">Delivered to recipient</th><td>Messages to one person. Their radio has it.</td></tr>
         <tr><th scope="row">Relayed, not confirmed by recipient</th><td>It was passed along, but their radio has not answered. It may be off or out of range.</td></tr>
         <tr><th scope="row">Failed to deliver to mesh</th><td>No radio heard it. Move to a window, go outside or get higher up, then send it again.</td></tr>
       </tbody></table>
       <ul class="plain">
+        <li><b>Not sure someone can hear you?</b> Send them a direct message. It is the only kind that tells you their radio got it.</li>
         <li><b>Keep messages short.</b> One message holds about 200 letters. The app counts them for you under the box.</li>
-        <li><b>Someone missing from Direct Messages?</b> A person appears there after your two radios have heard each other. Switch both on in the same place once.</li>
         <li><b>Test before you need it.</b> Send a message from each radio, indoors and from down the street. Range is a few blocks to a few miles without other radios in between.</li>
         <li><b>This is text, not voice,</b> and not a replacement for 911. Keep the radios charged.</li>
       </ul>
