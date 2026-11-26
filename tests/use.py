@@ -56,6 +56,7 @@ try:
     assert pg.get_attribute("#practice [data-lesson=dm]", "aria-pressed") == "true" and "Direct Messages" in coach(pg)
     pg.click("#practice .target"); assert pg.inner_text("#practice .big") == "Contacts (3)"
     assert "only after your radios have heard each other" in coach(pg), "the lesson says the list is not automatic"
+    assert "listed by their radio's name" in coach(pg)
     pg.click("#practice .target"); pg.fill("#pr-box", "Was it you?"); pg.press("#pr-box", "Enter")
     pg.wait_for_selector("#practice .mine .st.ok")
     assert pg.inner_text("#practice .mine .st") == "Delivered to recipient"
@@ -63,10 +64,13 @@ try:
     # The prerequisite is on the page: a person is listed only once the radios have met, and how to make that happen.
     sec = pg.locator("section[data-only~=use]", has=pg.locator("#dm-first"))
     text = " ".join(sec.text_content().split())
-    assert all(w in text for w in ["only once your radio knows theirs", "Share Contact", "Add Contact", "Nodes", "Exchange User Info", "Request User Info"]), text
+    assert all(w in text for w in ["listed only once yours knows it", "Share Contact", "Add Contact", "Nodes", "Exchange User Info", "Request User Info"]), text
     # Getting someone on the list comes before the steps that assume they are on it.
     assert text.index("First, get them on your list") < text.index("Then send") < text.index("Tap Direct Messages")
     assert sec.locator("ol.taps li").count() == 4
+    # People are found by their radio's name; the page says so and says how to make that easier.
+    assert "Tap their radio's name." in text and "person's name" not in text
+    assert all(w in text for w in ["a list of radios, not people", "Display name", "Add to favorites", "turn on Favorites"]), text
     # The page says up front that there are two kinds of message, before any steps.
     kinds = pg.inner_text("section[data-only~=use] .kinds")
     assert "group chat" in kinds and "goes to one radio" in kinds
@@ -78,6 +82,42 @@ try:
     assert pg.locator("#practice .mine").count() == 0
     clean(pg)
     print("one person lesson: all passed")
+
+    # ---- name a radio: the third lesson. Touch and hold in Nodes, Display name, type, Save; the name then shows everywhere ----
+    pg.click("#practice [data-lesson=name]")
+    assert pg.get_attribute("#practice [data-lesson=name]", "aria-pressed") == "true" and "Tap Nodes at the bottom" in coach(pg)
+    assert pg.locator("#practice .target").get_attribute("data-prtab") == "nodes"
+    pg.click("#practice [data-go=channels]"); assert "Tap Nodes at the bottom" in coach(pg), "from anywhere, the way on is the Nodes tab"
+    pg.click("#practice .target"); assert pg.inner_text("#practice .big") == "Nodes (3)" and "Touch and hold Maple 17" in coach(pg)
+    assert pg.get_attribute("#practice [data-prtab=nodes]", "class") == "on" and pg.get_attribute("#practice [data-prtab=home]", "class") == ""
+    pg.click("#practice [data-node=maple]"); assert "quick tap" in coach(pg) and pg.locator("#practice .menu").count() == 0, "a tap is not a hold"
+    box = pg.locator("#practice [data-node=maple]").bounding_box()
+    pg.mouse.move(box["x"] + 60, box["y"] + 20); pg.mouse.down(); pg.wait_for_timeout(650); pg.mouse.up()
+    assert pg.is_visible("#practice .menu") and "Tap Display name" in coach(pg)
+    pg.click("#pr-shade", position={"x": 12, "y": 12}); assert pg.locator("#practice .menu").count() == 0, "tapping outside closes the menu"
+    pg.locator("#practice [data-node=maple]").click(button="right"); assert pg.is_visible("#practice .menu"), "a right-click opens it too"
+    pg.click("#pr-dn"); assert pg.inner_text("#pr-al-t") == "Display Name" and "type a name" in coach(pg)
+    pg.fill("#pr-name", "x" * 60); assert len(pg.input_value("#pr-name")) == 36, "a display name holds 36 bytes, as in the app"
+    pg.fill("#pr-name", "Mom"); assert "Tap Save" in coach(pg)
+    pg.click("#pr-save")
+    assert coach(pg).startswith("Done") and '"Mom"' in coach(pg) and "only on your phone" in coach(pg)
+    assert pg.locator("#practice [data-node=maple] .h").inner_text().strip() == "Mom"
+    assert pg.locator("#practice [data-node=maple] .ct").inner_text() == "MA17", "the circle keeps the radio's own short name"
+    pg.click("#practice [data-prtab=home]"); pg.click("#practice [data-go=contacts]")
+    assert pg.locator("#practice [data-go='chat:maple'] .h").inner_text().strip() == "Mom"
+    pg.click("#practice [data-go='chat:maple']")
+    assert pg.inner_text("#practice .nav .t") == "Mom" and pg.inner_text("#practice .who").startswith("Mom (!")
+    # An empty name puts the radio's own name back; the keyboard can open the menu.
+    pg.click("#practice [data-prtab=nodes]"); pg.focus("#practice [data-node=maple]"); pg.keyboard.press("Enter")
+    pg.click("#pr-dn"); assert pg.input_value("#pr-name") == "Mom"
+    pg.fill("#pr-name", ""); pg.click("#pr-save")
+    assert pg.locator("#practice [data-node=maple] .h").inner_text().strip() == "Maple 17" and "Touch and hold" in coach(pg)
+    # In the other lessons the Nodes tab is a wrong turn with its own way back.
+    pg.click("#practice [data-lesson=channel]"); pg.click("#practice [data-prtab=nodes]")
+    assert "Tap Messages at the bottom" in coach(pg) and pg.locator("#practice .target").get_attribute("data-prtab") == "home"
+    pg.click("#practice .target"); assert "Tap Channels" in coach(pg)
+    clean(pg)
+    print("name a radio lesson: all passed")
 
     # ---- the finished-setup card and the family tab lead here; the tab row works by keyboard ----
     pg = page("/")
@@ -105,7 +145,12 @@ try:
       assert fits(), name + " screen runs off the side"
     pg.fill("#pr-box", "a long message " * 9); pg.click("#pr-send"); pg.wait_for_timeout(300)
     assert fits(), "a long sent message runs off the side"
-    pg.click("#practice .back"); pg.click("#practice .back"); pg.evaluate("window.scrollTo(0, 0)")
+    pg.click("#practice [data-prtab=nodes]"); assert fits(), "nodes screen runs off the side"
+    pg.locator("#practice [data-node=otter]").click(button="right"); assert fits() and pg.locator("#practice .menu").bounding_box()["x"] >= 0, "menu"
+    pg.click("#pr-dn"); pg.fill("#pr-name", "A very long name for a radio, 36 by"); assert fits(), "display name box"
+    a, s = pg.locator("#practice .alert").bounding_box(), pg.locator("#pr-screen").bounding_box()
+    assert a["x"] >= s["x"] and a["x"] + a["width"] <= s["x"] + s["width"] and a["y"] + a["height"] <= s["y"] + s["height"], "the box stays inside the drawing"
+    pg.click("#pr-save"); pg.click("#practice [data-prtab=home]"); pg.evaluate("window.scrollTo(0, 0)")
     # The step and the pretend phone fit on one screen together, and the step never covers the phone's top bar
     # (a sticky step did, on a real iPhone: it hid the back button the step was telling the reader to tap).
     pg.evaluate("window.scrollBy(0, 5000)"); pg.locator("#pr-screen").scroll_into_view_if_needed()
