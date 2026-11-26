@@ -56,6 +56,7 @@ try:
     assert pg.get_attribute("#practice [data-lesson=dm]", "aria-pressed") == "true" and "Direct Messages" in coach(pg)
     pg.click("#practice .target"); assert pg.inner_text("#practice .big") == "Contacts (3)"
     assert "only after your radios have heard each other" in coach(pg), "the lesson says the list is not automatic"
+    assert "listed by their radio's name" in coach(pg)
     pg.click("#practice .target"); pg.fill("#pr-box", "Was it you?"); pg.press("#pr-box", "Enter")
     pg.wait_for_selector("#practice .mine .st.ok")
     assert pg.inner_text("#practice .mine .st") == "Delivered to recipient"
@@ -67,6 +68,9 @@ try:
     # Getting someone on the list comes before the steps that assume they are on it.
     assert text.index("First, get them on your list") < text.index("Then send") < text.index("Tap Direct Messages")
     assert sec.locator("ol.taps li").count() == 4
+    # People are found by their radio's name; the page says so and says how to make that easier.
+    assert "Tap their radio's name." in text and "person's name" not in text
+    assert all(w in text for w in ["a list of radios, not people", "Display name", "Add to favorites", "turn on Favorites"]), text
     # The page says up front that there are two kinds of message, before any steps.
     kinds = pg.inner_text("section[data-only~=use] .kinds")
     assert "group chat" in kinds and "goes to one radio" in kinds

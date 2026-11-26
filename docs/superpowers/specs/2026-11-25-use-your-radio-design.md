@@ -69,3 +69,11 @@ tests/use.py runs in Chrome, which never showed the first problem at its 360x740
 ## 0.16.3: the pretend phone ran off the right edge
 
 David's iPhone 17 Pro screenshot of the live 0.16.2: on the Channels screen the lesson buttons, the step and the drawing all ran past the right edge. Cause: on a narrow screen `.practice` was a `1fr` grid track, which grows to its widest child, and the one-line message preview ("Who ate the last of the ice cream? ...") is `white-space: nowrap`. The first screen has no long text, which is why the load-time "fits a phone" test and the simulator pass (which cannot tap) both missed it. Fix: `minmax(0, 1fr)` and `min-width: 0` down the chain. The test now walks every screen of the pretend phone at phone width.
+
+## 0.16.4: radios, not people
+
+David: "Tap the person's name" should say it is their radio's name, because that is how they are identified. He also asked whether the list can show only favorites and whether a contact's radio can be renamed.
+
+- Every "person's name" / "their name" in the direct-message steps is now "their radio's name", and the list is introduced as a list of radios, not people. The lesson's step says the same.
+- New block in 03, "Can't tell whose radio is whose?": Display name (touch and hold a radio in Nodes; stored on the phone only, never sent), Add to favorites, and the Favorites filter above the list.
+- Source: the app's Nodes documentation (meshtastic.org/docs/software/apple/user/nodes): "Display name" on the long-press menu or the Name row of node detail, a nickname kept on the device and never sent over the mesh; "Add to favorites"; a "Favorites" filter ("Only nodes you have starred") that also applies to the contacts list in Messages. The filter toggle is in the app source (NodeListFilter). Not confirmed on David's installed app version: the docs follow the newest app.
