@@ -51,7 +51,7 @@
     <p data-only="join"><b>Join a local mesh.</b> For a radio that is already set up. Pick the mesh near you, plug in, press one button. This tab changes only the radio's mesh settings: modem preset, frequency slot, hop limit and whatever else that group publishes. Its name, Bluetooth or WiFi, PIN and private channels stay as they are.</p>
     <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
     <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
-    <p data-only="use"><b>Use your radio.</b> Your radio is set up. Here is how to send a message from the Meshtastic app on your phone. No cable needed, and this part works on a phone too.</p>
+    <p data-only="use"><b>Use your radio.</b> Your radio is set up. Here is how to send a message from the Meshtastic app on your phone, and how to name your family's radios so you know who is who. No cable needed, and this part works on a phone too.</p>
   </div>
 </header>
 
@@ -99,8 +99,9 @@
       <div class="practice" id="practice">
         <div class="pr-side">
           <div class="lessons" role="group" aria-label="Pick what to practice">
-            <button type="button" data-lesson="channel" aria-pressed="true">Message your family channel</button>
+            <button type="button" data-lesson="channel" aria-pressed="true">Message your group</button>
             <button type="button" data-lesson="dm" aria-pressed="false">Message one person</button>
+            <button type="button" data-lesson="name" aria-pressed="false">Name a radio</button>
           </div>
           <div class="coach" id="pr-coach" role="status" aria-live="polite"></div>
         </div>
@@ -108,12 +109,12 @@
           <div class="phone" role="group" aria-label="Pretend iPhone showing the Meshtastic app">
             <div class="statusbar" aria-hidden="true"><span>9:41</span><span>100%</span></div>
             <div class="screen" id="pr-screen"></div>
-            <div class="tabbar" aria-hidden="true">
-              <div class="on"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Messages</div>
-              <div><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.5 4.5a10.6 10.6 0 0 0 0 15M19.5 4.5a10.6 10.6 0 0 1 0 15"/></svg>Nodes</div>
-              <div><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>Map</div>
-              <div><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</div>
-              <div><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Connect</div>
+            <div class="tabbar">
+              <button type="button" data-prtab="home" class="on"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Messages</button>
+              <button type="button" data-prtab="nodes"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.5 4.5a10.6 10.6 0 0 0 0 15M19.5 4.5a10.6 10.6 0 0 1 0 15"/></svg>Nodes</button>
+              <div aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>Map</div>
+              <div aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</div>
+              <div aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Connect</div>
             </div>
           </div>
           <p class="hint pr-caption">A drawing of the Meshtastic iPhone app, not a real screenshot. The names and messages are made up.</p>
@@ -168,9 +169,9 @@
       <p class="hint">Shortcut: in Nodes, touch and hold their radio's name and choose <b>Message</b>.</p>
       <h3>Can't tell whose radio is whose?</h3>
       <ul class="plain">
-        <li><b>Give a radio a name you will recognise.</b> In Nodes, touch and hold the radio and choose <b>Display name</b>. Type "Mom" or "Dave's truck". Only your phone sees that name; nothing is sent over the air and their radio is not changed.</li>
+        <li><b>Give a radio a name you will know.</b> In Nodes, touch and hold the radio and choose <b>Display name</b>. Type "Mom" or "Dave's truck" and tap Save. Only your phone uses that name: nothing is sent over the air and their radio is not changed. Try it first on the pretend phone above: pick <b>Name a radio</b>. If your app has no Display name in that menu, update the Meshtastic app.</li>
         <li><b>Star your people.</b> In Nodes or Direct Messages, touch and hold a radio and choose <b>Add to favorites</b>. Favorites go to the top of the list.</li>
-        <li><b>Show only your favorites.</b> Tap the filter button above the list and turn on <b>Favorites</b>. Useful on a busy mesh, where the list can run to hundreds of strangers' radios.</li>
+        <li><b>Show only your favorites.</b> Tap the filter button at the top right of the list and turn on <b>Favorites</b>. Useful on a busy mesh, where the list can run to hundreds of strangers' radios.</li>
       </ul>
       <details class="mini"><summary>Using an Android phone?</summary>
         <p>The steps are the same; a few names differ. The Messages tab lists your channels and your direct messages together. To scan someone's code, tap the import button on the node list and choose <b>Scan Shared Contact QR Code</b>. To show yours, open a radio in the node list and tap <b>Share Contact</b>. Where the iPhone says Exchange User Info, Android says <b>Request User Info</b>.</p>

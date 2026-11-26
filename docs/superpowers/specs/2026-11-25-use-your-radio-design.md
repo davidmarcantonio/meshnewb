@@ -77,3 +77,12 @@ David: "Tap the person's name" should say it is their radio's name, because that
 - Every "person's name" / "their name" in the direct-message steps is now "their radio's name", and the list is introduced as a list of radios, not people. The lesson's step says the same.
 - New block in 03, "Can't tell whose radio is whose?": Display name (touch and hold a radio in Nodes; stored on the phone only, never sent), Add to favorites, and the Favorites filter above the list.
 - Source: the app's Nodes documentation (meshtastic.org/docs/software/apple/user/nodes): "Display name" on the long-press menu or the Name row of node detail, a nickname kept on the device and never sent over the mesh; "Add to favorites"; a "Favorites" filter ("Only nodes you have starred") that also applies to the contacts list in Messages. The filter toggle is in the app source (NodeListFilter). Not confirmed on David's installed app version: the docs follow the newest app.
+
+## 0.17.0: a third lesson, "Name a radio"
+
+David asked for a sixth button to let families name radios "so it's better to know who it is", then, a minute later: "Wait, make it part of your demo." So it is a lesson on the pretend phone, not a new tab.
+
+- Five steps: tap Nodes, touch and hold Maple 17, tap Display name, type a name, tap Save. The name then shows in Nodes, Direct Messages, the chat title and above that radio's messages; the circle keeps the radio's own short name. Saving an empty name puts the radio's name back.
+- The pretend phone's Messages and Nodes tabs are real buttons now. In the two messaging lessons the Nodes tab is a wrong turn ("Tap Messages at the bottom").
+- From the app: the hold menu has Message, Display name, a favorites item and Trace Route (NodeList); the editor is an alert titled "Display Name" with one field, Cancel and Save, and a 36-byte limit (EditNodeDisplayNameView). Shared Memory note "iOS app - local display names and favorites filter" (another session, same day) has the app versions: the editor since 2.7.27, shown throughout since 2.7.28.
+- My calls: teach touch-and-hold, because it is the one route both the docs and the app source agree on, with a nudge when the reader taps instead ("That was a quick tap"); a right-click and the Enter key open the menu too, for desktop and keyboard users. The other menu items are drawn but do nothing. The name is not carried from one lesson to the next: every lesson starts clean.

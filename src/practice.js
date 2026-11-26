@@ -34,17 +34,24 @@ const SEND_MS = 1800, REPLY_MS = 2200;
 
 const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
 const circle = (k) => `<span class="ct pc-${k}">${PEOPLE[k].s}</span>`;
+export const MAX_NAME_BYTES = 36; // the app's limit for a display name (EditNodeDisplayNameView.maxBytes)
+const HOLD_MS = 450;
 
 export function initPractice(root) {
   if (!root) return;
   const q = (sel) => root.querySelector(sel);
   const elScreen = q("#pr-screen"), elCoach = q("#pr-coach"), lessonBtns = [...root.querySelectorAll("[data-lesson]")];
+  const tabBtns = [...root.querySelectorAll("[data-prtab]")];
   let chats, lesson = "channel", screen = "home", sentIn = null, delivered = false, timers = [], coachHtml = "";
+  // "Name a radio": names are the app's local display names, kept on the phone and shown wherever that radio appears.
+  // sheet is what is open over the Nodes screen: the touch-and-hold menu, or the Display Name box.
+  let names = {}, named = null, sheet = null, quickTap = false;
+  const nm = (k) => names[k] || PEOPLE[k].n;
   // On a phone the step sits above the pretend phone. After a tap, bring the pair back into view if either end has
   // slipped off the screen. Never on load, and never while typing (the keyboard owns the scroll position then).
   const narrow = window.matchMedia("(max-width: 760px)");
   function keepInView() {
-    if (!narrow.matches || document.activeElement === q("#pr-box")) return;
+    if (!narrow.matches || [q("#pr-box"), q("#pr-name")].includes(document.activeElement)) return;
     const top = elCoach.getBoundingClientRect().top, bottom = root.querySelector(".phone").getBoundingClientRect().bottom;
     const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     if (top < 0 || bottom > h) elCoach.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -56,13 +63,13 @@ export function initPractice(root) {
   const bubble = (m) => {
     if (m[0] === "me") return `<div class="mine"><span class="bub">${esc(m[1])}</span><div class="st${m[2] ? " ok" : ""}">${m[2] ? I.check + m[2] : I.clock + "Sending..."}</div></div>`;
     const p = PEOPLE[m[0]];
-    return `<div class="m">${circle(m[0])}<div class="grow"><div class="who">${p.n} (${p.id})</div><span class="bub">${esc(m[1])}</span></div></div>`;
+    return `<div class="m">${circle(m[0])}<div class="grow"><div class="who">${esc(nm(m[0]))} (${p.id})</div><span class="bub">${esc(m[1])}</span></div></div>`;
   };
 
   // Re-drawing a chat (a status change, a reply arriving) must not throw away what is being typed.
   function go(to) {
     const box = q("#pr-box"), keep = box && screen === to ? box.value : "", had = box && document.activeElement === box;
-    screen = to; render();
+    screen = to; sheet = null; quickTap = false; render();
     const now = q("#pr-box");
     if (now && keep) { now.value = keep; now.dispatchEvent(new Event("input")); }
     if (now && had) now.focus();
@@ -71,6 +78,7 @@ export function initPractice(root) {
   function reset(l) {
     timers.forEach(clearTimeout); timers = [];
     chats = structuredClone(START); lesson = l; sentIn = null; delivered = false; screen = "home";
+    names = {}; named = null; sheet = null; quickTap = false;
     lessonBtns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lesson === l)));
     render();
   }
@@ -87,10 +95,19 @@ export function initPractice(root) {
         chanRow("family", "1", I.lock, "Family", last("family"))}</div>`;
     } else if (screen === "contacts") {
       h = nav("Messages", "home", "") + `<div class="big">Contacts (3)</div><div class="search">Find a contact</div><div class="list">${
-        ["maple", "bison", "otter"].map((k) => `<button type="button" data-go="chat:${k}">${circle(k)}<span class="grow"><span class="h">${I.lock}${PEOPLE[k].n}</span><span class="prev">${esc(last(k) || "No messages yet")}</span></span>${I.chev}</button>`).join("")}</div>`;
+        ["maple", "bison", "otter"].map((k) => `<button type="button" data-go="chat:${k}">${circle(k)}<span class="grow"><span class="h">${I.lock}${esc(nm(k))}</span><span class="prev">${esc(last(k) || "No messages yet")}</span></span>${I.chev}</button>`).join("")}</div>`;
+    } else if (screen === "nodes") {
+      h = `<div class="nav"></div><div class="big">Nodes (3)</div><div class="list nodes">${
+        ["maple", "bison", "otter"].map((k) => `<button type="button" data-node="${k}">${circle(k)}<span class="grow"><span class="h">${I.lock}${esc(nm(k))}</span><span class="prev">Heard just now</span></span></button>`).join("")}</div>`;
+      if (sheet?.kind === "menu") h += `<div class="shade" id="pr-shade"></div><div class="menu" role="menu" aria-label="${esc(nm(sheet.key))}">
+        <div class="mi off">Message</div><button type="button" class="mi" id="pr-dn" role="menuitem">Display name</button><div class="mi off">Add to favorites</div><div class="mi off">Trace Route</div></div>`;
+      if (sheet?.kind === "edit") h += `<div class="shade"></div><div class="alert" role="dialog" aria-labelledby="pr-al-t"><div class="al-t" id="pr-al-t">Display Name</div>
+        <div class="al-m">This name is only shown on this device.</div><label class="sr" for="pr-name">Display name</label>
+        <input id="pr-name" type="text" placeholder="Display name" autocomplete="off" autocorrect="off" enterkeyhint="done">
+        <div class="al-b"><button type="button" id="pr-cancel">Cancel</button><button type="button" id="pr-save">Save</button></div></div>`;
     } else {
       const key = screen.split(":")[1], c = chats[key];
-      h = nav(c.dm ? "Contacts" : "Channels", c.dm ? "contacts" : "channels", (c.dm ? "" : key === "family" ? I.lock : I.open) + esc(c.title))
+      h = nav(c.dm ? "Contacts" : "Channels", c.dm ? "contacts" : "channels", c.dm ? esc(nm(key)) : (key === "family" ? I.lock : I.open) + esc(c.title))
         + `<div class="log" id="pr-log">${c.msgs.map(bubble).join("")}</div>
         <div class="compose"><div class="r"><label class="sr" for="pr-box">Message</label><input id="pr-box" type="text" placeholder="Message" autocomplete="off" enterkeyhint="send">
         <button type="button" class="send" id="pr-send" aria-label="Send">${I.up}</button></div>
@@ -98,8 +115,39 @@ export function initPractice(root) {
     }
     elScreen.innerHTML = h;
     elScreen.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => go(b.dataset.go)));
+    tabBtns.forEach((b) => b.classList.toggle("on", (b.dataset.prtab === "nodes") === (screen === "nodes")));
     if (q("#pr-box")) wireChat(screen.split(":")[1]);
+    if (screen === "nodes") wireNodes();
     coach();
+  }
+
+  // The real app opens this menu when a radio is touched and held, so that is the gesture taught here. A right-click
+  // and the keyboard open it too. A quick tap (which in the app opens the radio's details) gets a nudge instead.
+  function wireNodes() {
+    elScreen.querySelectorAll("[data-node]").forEach((b) => {
+      let timer = null, held = false;
+      const open = () => { held = true; sheet = { kind: "menu", key: b.dataset.node }; quickTap = false; render(); keepInView(); };
+      const clear = () => clearTimeout(timer);
+      b.onpointerdown = () => { held = false; clear(); timer = setTimeout(open, HOLD_MS); };
+      b.onpointerup = b.onpointerleave = b.onpointercancel = clear;
+      b.oncontextmenu = (e) => { e.preventDefault(); clear(); if (!held) open(); };
+      b.onclick = (e) => { if (held) return; if (e.detail === 0) return open(); quickTap = true; coach(); };
+    });
+    const close = () => { sheet = null; render(); };
+    if (q("#pr-shade")) q("#pr-shade").onclick = close;
+    if (q("#pr-dn")) q("#pr-dn").onclick = () => { sheet = { kind: "edit", key: sheet.key }; render(); };
+    const box = q("#pr-name");
+    if (!box) return;
+    const bytes = () => new TextEncoder().encode(box.value).length;
+    box.value = names[sheet.key] || "";
+    box.oninput = () => { while (bytes() > MAX_NAME_BYTES) box.value = box.value.slice(0, -1); coach(); };
+    const save = () => {
+      const v = box.value.trim(), key = sheet.key;
+      if (v) { names[key] = v; named = key; } else { delete names[key]; if (named === key) named = null; } // an empty name puts the radio's own name back
+      sheet = null; render(); keepInView();
+    };
+    q("#pr-save").onclick = save; q("#pr-cancel").onclick = close;
+    box.onkeydown = (e) => { if (e.key === "Enter") save(); };
   }
 
   function wireChat(key) {
@@ -129,34 +177,56 @@ export function initPractice(root) {
 
   // The coach looks at where you are and names the next tap, so a wrong turn never breaks the lesson.
   function coach() {
-    const want = lesson === "channel" ? "family" : "maple", listScreen = lesson === "channel" ? "channels" : "contacts";
-    const box = q("#pr-box");
+    const box = q("#pr-box"), nameBox = q("#pr-name");
     let n = 1, text, target = null, done = false;
-    if (sentIn === want) {
-      n = 5; done = delivered;
-      text = !delivered ? "Sending. Watch the small line under your message."
-        : lesson === "channel" ? 'Sent. "Delivered to mesh" means another radio heard it and passed it on. It does not tell you a person has read it.'
-        : 'Sent. "Delivered to recipient" means their radio has it. Before you try this for real, read "First, get them on your list" in section 03.';
-    } else if (screen === "home") {
-      target = `[data-go="${listScreen}"]`; text = lesson === "channel" ? "Tap Channels." : "Tap Direct Messages.";
-    } else if (screen === listScreen) {
-      n = 2; target = `[data-go="chat:${want}"]`;
-      text = lesson === "channel" ? "Tap Family. The green lock means only your group can read it." : "Tap the radio of the person you want. Here, Maple 17. People are listed by their radio's name, and only after your radios have heard each other: section 03 below has the steps.";
-    } else if (screen === "chat:" + want) {
-      if (box && box.value.trim()) { n = 4; target = "#pr-send"; text = "Tap the blue arrow to send."; }
-      else { n = 3; target = "#pr-box"; text = "Tap the Message box and type a few words."; }
+    if (lesson === "name") {
+      if (named && !sheet) {
+        n = 5; done = true;
+        text = `Saved. This radio is now "${names[named]}" on your phone, and only on your phone. Tap Messages, then Direct Messages, to see it there.`;
+      } else if (sheet?.kind === "edit") {
+        if (nameBox.value.trim()) { n = 5; target = "#pr-save"; text = "Tap Save."; }
+        else { n = 4; target = "#pr-name"; text = "Tap the box and type a name you will know, like Mom."; }
+      } else if (sheet?.kind === "menu") {
+        n = 3; target = "#pr-dn"; text = "Tap Display name.";
+      } else if (screen === "nodes") {
+        n = 2; target = '[data-node="maple"]';
+        text = quickTap ? "That was a quick tap. Press on Maple 17 and keep your finger down until a menu appears."
+          : "Touch and hold Maple 17: press and keep your finger down until a menu appears.";
+      } else {
+        target = '[data-prtab="nodes"]'; text = "Tap Nodes at the bottom.";
+      }
     } else {
-      n = screen.startsWith("chat:") ? 2 : 1; target = ".back"; text = "Not this one. Tap the blue word at the top left to go back.";
+      const want = lesson === "channel" ? "family" : "maple", listScreen = lesson === "channel" ? "channels" : "contacts";
+      if (sentIn === want) {
+        n = 5; done = delivered;
+        text = !delivered ? "Sending. Watch the small line under your message."
+          : lesson === "channel" ? 'Sent. "Delivered to mesh" means another radio heard it and passed it on. It does not tell you a person has read it.'
+          : 'Sent. "Delivered to recipient" means their radio has it. Before you try this for real, read "First, get them on your list" in section 03.';
+      } else if (screen === "home") {
+        target = `[data-go="${listScreen}"]`; text = lesson === "channel" ? "Tap Channels." : "Tap Direct Messages.";
+      } else if (screen === listScreen) {
+        n = 2; target = `[data-go="chat:${want}"]`;
+        text = lesson === "channel" ? "Tap Family. The green lock means only your group can read it." : "Tap the radio of the person you want. Here, Maple 17. People are listed by their radio's name, and only after your radios have heard each other: section 03 below has the steps.";
+      } else if (screen === "chat:" + want) {
+        if (box && box.value.trim()) { n = 4; target = "#pr-send"; text = "Tap the blue arrow to send."; }
+        else { n = 3; target = "#pr-box"; text = "Tap the Message box and type a few words."; }
+      } else if (screen === "nodes") {
+        target = '[data-prtab="home"]'; text = "Not this one. Tap Messages at the bottom.";
+      } else {
+        n = screen.startsWith("chat:") ? 2 : 1; target = ".back"; text = "Not this one. Tap the blue word at the top left to go back.";
+      }
     }
     root.querySelectorAll(".target").forEach((t) => t.classList.remove("target"));
     if (target) q(target)?.classList.add("target");
     elCoach.classList.toggle("done", done);
     let html = `<div class="n">${done ? "Done" : `Step ${n} of 5`}</div><p>${esc(text)}</p>`;
-    if (done) html += `<div class="again"><button type="button" id="pr-next">${lesson === "channel" ? "Next: message one person" : "Back to the family channel"}</button><button type="button" id="pr-again">Do this one again</button></div>`;
+    const next = { channel: ["dm", "Next: message one person"], dm: ["name", "Next: name a radio"], name: ["channel", "Back to: message your group"] }[lesson];
+    if (done) html += `<div class="again"><button type="button" id="pr-next">${next[1]}</button><button type="button" id="pr-again">Do this one again</button></div>`;
     if (html !== coachHtml) { elCoach.innerHTML = coachHtml = html; } // unchanged text is not re-announced to a screen reader
-    if (done) { q("#pr-next").onclick = () => reset(lesson === "channel" ? "dm" : "channel"); q("#pr-again").onclick = () => reset(lesson); }
+    if (done) { q("#pr-next").onclick = () => { reset(next[0]); keepInView(); }; q("#pr-again").onclick = () => { reset(lesson); keepInView(); }; }
   }
 
   lessonBtns.forEach((b) => (b.onclick = () => { reset(b.dataset.lesson); keepInView(); }));
+  tabBtns.forEach((b) => (b.onclick = () => go(b.dataset.prtab)));
   reset("channel");
 }
