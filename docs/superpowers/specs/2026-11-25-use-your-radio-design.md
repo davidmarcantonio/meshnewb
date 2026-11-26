@@ -54,3 +54,14 @@ Changes:
 - On a phone, on this tab only, the five choices become a compact two-column grid without subtitles, so the guide starts about 470px sooner.
 
 Not verified on a real phone: the iPhone path for showing your own code (Nodes, your radio, Actions, Share Contact) and that the camera opens the link. Both come from the docs. David has two T1000-Es to try it with.
+
+## 0.16.2: what a real iPhone showed
+
+David: "It looks wrong on my iPhone." Checked in the iOS Simulator on codey-box (iPhone 17, iOS 27, Safari) with `xcrun simctl openurl` and `simctl io screenshot`, using #anchors to reach each part of the page.
+
+- The sticky step slid over the top of the pretend phone and hid its title and back button. The step is no longer sticky; the drawing's height follows the screen (`100svh`) so step and phone fit together, and practice.js scrolls the step to the top after a tap when either end is off screen.
+- Section headings and their asides wrapped into two ragged columns. They stack on a phone now.
+- Tab labels wrapped under their emoji. They wrap beside it now.
+- A card title's aside ("when you are together") broke mid-phrase. It is on its own line now.
+
+tests/use.py runs in Chrome, which never showed the first problem at its 360x740 size until the page was scrolled; the test now scrolls and checks that the step does not cover the phone.

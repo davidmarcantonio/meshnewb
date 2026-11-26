@@ -295,20 +295,27 @@ body[data-page="use"] ul.plain b { color: var(--text); font-weight: 500; }
 @media (max-width: 640px) {
   body[data-page="use"] .pagetabs { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
   body[data-page="use"] .pagetabs button { padding: 10px 12px; }
-  body[data-page="use"] .pagetabs button b { font-size: 14px; margin: 0; }
+  body[data-page="use"] .pagetabs button { justify-content: center; }
+  /* The label wraps beside its emoji, not under it. */
+  body[data-page="use"] .pagetabs button b { display: flex; align-items: flex-start; font-size: 14px; line-height: 1.3; margin: 0; }
   body[data-page="use"] .pagetabs button span { display: none; }
   body[data-page="use"] header.site > p { display: none; }
   .kinds .card p.hint { display: none; }
+  /* A heading and its aside stack on a phone; side by side they both wrap into ragged columns. */
+  section[data-only~="use"] h2 { flex-direction: column; gap: 2px; }
+  .use-cols .card .hint { display: block; margin: 2px 0 0; }
   .kinds { gap: 8px; }
 }
 @media (max-width: 760px) {
   .use-cols { grid-template-columns: 1fr; }
   .practice { grid-template-columns: 1fr; gap: 12px; }
-  /* On a phone the step stays in view above the pretend phone while the page scrolls. */
-  /* display: contents makes the step a child of the grid, so it can stick for the whole height of the pretend phone. */
+  /* On a phone the step and the pretend phone fit on one screen together: the drawing shrinks to the space there is
+     (svh: the height with Safari's bars showing). practice.js scrolls the step to the top after each tap. The step is
+     not sticky: on a real iPhone a sticky step slid over the pretend phone's top bar and hid its back button. */
   .practice .pr-side { display: contents; }
   .practice .lessons { grid-template-columns: 1fr 1fr; }
-  .practice .coach { position: sticky; top: 8px; z-index: 2; margin-top: 0; min-height: 84px; box-shadow: 0 6px 18px -8px #000; }
+  .practice .coach { margin-top: 0; min-height: 84px; scroll-margin-top: 8px; }
+  .practice .screen { height: 500px; height: clamp(330px, calc(100svh - 310px), 500px); }
   .practice .pr-phone { max-width: 360px; width: 100%; margin: 0 auto; }
   table.statuses th { width: 42%; }
 }
