@@ -98,6 +98,7 @@ jobs:
             dist/join/index.html
             dist/family/index.html
             dist/check/index.html
+            dist/use/index.html
             dist/app.js
             dist/app.css
             dist/og.png

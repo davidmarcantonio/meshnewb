@@ -28,28 +28,28 @@ try:
       return pg.inner_text("#check-status")
     DONE = "Nothing was changed"
 
-    # one page, four tabs. The home page opens on "Set up a radio"; a tab click swaps the parts in place.
+    # one page, five tabs. The home page opens on "Set up a radio"; a tab click swaps the parts in place.
     sel = lambda pg: [t.get_attribute("aria-selected") for t in pg.locator(".pagetabs button").all()]
     pg = page({}, "/")
-    assert [t.get_attribute("data-tab") for t in pg.locator(".pagetabs button").all()] == ["radio", "join", "family", "check"]
-    assert sel(pg) == ["true", "false", "false", "false"] and pg.is_visible("#btn-full") and pg.is_hidden("#btn-check") and pg.is_hidden("#btn-join")
+    assert [t.get_attribute("data-tab") for t in pg.locator(".pagetabs button").all()] == ["radio", "join", "family", "check", "use"]
+    assert sel(pg) == ["true", "false", "false", "false", "false"] and pg.is_visible("#btn-full") and pg.is_hidden("#btn-check") and pg.is_hidden("#btn-join")
     assert pg.locator("header.site h1:visible").count() == 1 and "get your radios talking" in pg.inner_text("header.site h1:visible")
     assert pg.locator("a.choice").count() == 0 and "MeshNewb home" not in pg.inner_text("body")
     pg.wait_for_function("() => document.querySelector('#state').options.length > 1", timeout=5000)   # community list loads from the home page
     assert "Set up a radio." in pg.inner_text(".tabintro")
     pg.click(".pagetabs [data-tab=check]")
-    assert sel(pg) == ["false", "false", "false", "true"] and pg.is_visible("#btn-check") and pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-new")
+    assert sel(pg) == ["false", "false", "false", "true", "false"] and pg.is_visible("#btn-check") and pg.is_hidden("#btn-full") and pg.is_hidden("#btn-fam-new")
     assert "See how a radio is set." in pg.inner_text(".tabintro") and "Set up a radio." not in pg.inner_text(".tabintro")
     pg.click(".pagetabs [data-tab=family]")
-    assert sel(pg) == ["false", "false", "true", "false"] and pg.is_visible("#btn-fam-new") and pg.is_hidden("#btn-check")
+    assert sel(pg) == ["false", "false", "true", "false", "false"] and pg.is_visible("#btn-fam-new") and pg.is_hidden("#btn-check")
     pg.focus(".pagetabs [data-tab=family]"); pg.keyboard.press("ArrowRight")
-    assert sel(pg) == ["false", "false", "false", "true"], "arrow keys move between tabs"
+    assert sel(pg) == ["false", "false", "false", "true", "false"], "arrow keys move between tabs"
     assert pg.errs == [] and pg.csp == [] and pg.ext == [], (pg.errs, pg.csp, pg.ext)
     # old addresses still work and open on their own tab
-    for path, want in [("/radio/", ["true", "false", "false", "false"]), ("/join/", ["false", "true", "false", "false"]), ("/family/", ["false", "false", "true", "false"]), ("/check/", ["false", "false", "false", "true"])]:
+    for path, want in [("/radio/", ["true", "false", "false", "false", "false"]), ("/join/", ["false", "true", "false", "false", "false"]), ("/family/", ["false", "false", "true", "false", "false"]), ("/check/", ["false", "false", "false", "true", "false"]), ("/use/", ["false", "false", "false", "false", "true"])]:
       assert sel(page({}, path)) == want, path
     # a tab choice never comes from the address
-    assert sel(page({}, "/?tab=check#check")) == ["true", "false", "false", "false"]
+    assert sel(page({}, "/?tab=check#check")) == ["true", "false", "false", "false", "false"]
     # the column sits in the middle of a wide window, and the tabs line up with the panels
     wide = b.new_page(viewport={"width": 1800, "height": 900}); wide.goto(URL + "/"); wide.wait_for_timeout(300)
     box = wide.evaluate("() => ['.pagetabs', 'main', '#prereq'].map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.left), Math.round(innerWidth - r.right)]; })")
@@ -57,7 +57,7 @@ try:
     # reading a radio from the Check tab, then switching: the community list still loads, and the fix-it link stays on this page
     pg = page({**SETUP, "fw": "2.7.10.abc"}, "/check/"); read(pg, DONE)
     pg.click("#check-flags a"); pg.wait_for_timeout(200)
-    assert pg.url == URL + "/check/" and sel(pg) == ["true", "false", "false", "false"] and pg.is_visible("#btn-full")
+    assert pg.url == URL + "/check/" and sel(pg) == ["true", "false", "false", "false", "false"] and pg.is_visible("#btn-full")
     pg.wait_for_function("() => document.querySelector('#state').options.length > 1", timeout=5000)
     # tabs are locked while the page is talking to a radio
     pg = page({**SETUP, "slowFirstMs": 14000}, "/check/"); pg.click("#btn-check"); pg.wait_for_timeout(1500)

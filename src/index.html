@@ -38,18 +38,20 @@
   <div class="eyebrow">Meshtastic · from your browser</div>
   <h1>MeshNewb<span class="dot">.</span> get your radios talking</h1>
   <p>Meshtastic radios send text messages to each other with no cell service and no internet. This page sets them up over a USB cable. Pick what you want to do.</p>
-  <!-- One page, four choices in a 2x2 grid (still tabs to a screen reader). A tab only changes which parts show (body data-page); nothing is read from the address. -->
+  <!-- One page, five choices: a 2x2 grid for the jobs that need a cable, and one wide button for using the radio afterwards (still tabs to a screen reader). A tab only changes which parts show (body data-page); nothing is read from the address. -->
   <div class="pagetabs" role="tablist" aria-label="What do you want to do?">
     <button type="button" role="tab" data-tab="radio"><b><i class="ico" aria-hidden="true">📻</i>Set up a radio</b><span>New radio? Start here</span></button>
     <button type="button" role="tab" data-tab="join"><b><i class="ico" aria-hidden="true">📡</i>Join a local mesh</b><span>Mesh settings only, keeps the rest</span></button>
     <button type="button" role="tab" data-tab="family"><b><i class="ico" aria-hidden="true">👥</i>Family or group channel</b><span>One private channel, several radios</span></button>
     <button type="button" role="tab" data-tab="check"><b><i class="ico" aria-hidden="true">🔍</i>See how a radio is set</b><span>Look at its settings, change nothing</span></button>
+    <button type="button" role="tab" data-tab="use"><b><i class="ico" aria-hidden="true">💬</i>Use your radio</b><span>Set up already? Send your first message</span></button>
   </div>
   <div class="tabintro">
     <p data-only="radio"><b>Set up a radio.</b> For a new radio, or one that needs a fresh start. Plug it in, check the name and PIN this page picked for you, press one button.</p>
     <p data-only="join"><b>Join a local mesh.</b> For a radio that is already set up. Pick the mesh near you, plug in, press one button. This tab changes only the radio's mesh settings: modem preset, frequency slot, hop limit and whatever else that group publishes. Its name, Bluetooth or WiFi, PIN and private channels stay as they are.</p>
     <p data-only="family"><b>Family or group channel.</b> Give several radios the same private channel so your household or group can message each other. Create the channel once, then plug in each radio in turn. The channel key is made in this tab and goes to your radios over USB and nowhere else. Do this after every radio is set up.</p>
     <p data-only="check"><b>See how a radio is set.</b> Plug in a radio and press the button. This page reads its settings over USB and shows them here. It changes nothing on the radio. Your radio's settings stay in this tab; the only outside request is to Meshtastic's server, to ask for the current firmware version.</p>
+    <p data-only="use"><b>Use your radio.</b> Your radio is set up. Here is how to send a message with the Meshtastic app on your phone: to your family or group channel, and to one person. Practice on the pretend phone first. No cable needed, and this part works on a phone too.</p>
   </div>
 </header>
 
@@ -74,6 +76,80 @@
 </section>
 
 <main>
+    <!-- ===== Use your radio (use page only). Nothing here talks to a radio or the network: the phone is drawn by practice.js. ===== -->
+    <section class="panel" data-only="use">
+      <h2><span><span class="n">01</span>Practice on a pretend phone</span><small>nothing is sent anywhere</small></h2>
+      <p class="note">Follow the orange outline. Tap the wrong thing and nothing breaks: the next step tells you how to get back.</p>
+      <div class="practice" id="practice">
+        <div class="pr-side">
+          <div class="lessons" role="group" aria-label="Pick what to practice">
+            <button type="button" data-lesson="channel" aria-pressed="true">Message your family channel</button>
+            <button type="button" data-lesson="dm" aria-pressed="false">Message one person</button>
+          </div>
+          <div class="coach" id="pr-coach" role="status" aria-live="polite"></div>
+        </div>
+        <div class="pr-phone">
+          <div class="phone" role="group" aria-label="Pretend iPhone showing the Meshtastic app">
+            <div class="statusbar" aria-hidden="true"><span>9:41</span><span>100%</span></div>
+            <div class="screen" id="pr-screen"></div>
+            <div class="tabbar" aria-hidden="true">
+              <div class="on"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Messages</div>
+              <div><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.5 4.5a10.6 10.6 0 0 0 0 15M19.5 4.5a10.6 10.6 0 0 1 0 15"/></svg>Nodes</div>
+              <div><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>Map</div>
+              <div><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</div>
+              <div><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Connect</div>
+            </div>
+          </div>
+          <p class="hint pr-caption">A drawing of the Meshtastic iPhone app, not a real screenshot. The names and messages are made up.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-only="use">
+      <h2><span><span class="n">02</span>Now on your real phone</span><small>the same taps, for real</small></h2>
+      <p class="note">Switch your radio on and open the Meshtastic app. The <b>Connect</b> tab shows whether the app has found your radio.</p>
+      <div class="use-cols">
+        <div class="card">
+          <p><b>Message your family or group channel</b></p>
+          <ol>
+            <li>Tap <b>Messages</b> at the bottom.</li>
+            <li>Tap <b>Channels</b>.</li>
+            <li>Tap your channel's name. A green lock beside it means only your group can read it.</li>
+            <li>Type a short message and tap the blue arrow.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <p><b>Message one person</b></p>
+          <ol>
+            <li>Tap <b>Messages</b> at the bottom.</li>
+            <li>Tap <b>Direct Messages</b>.</li>
+            <li>Tap the person's name.</li>
+            <li>Type a short message and tap the blue arrow.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="callout">The channel called <b>Primary Channel</b> with a yellow open lock is the public one. Anyone nearby with a radio can read what is sent there. Keep family talk on your own channel.</div>
+      <p class="hint">On an Android phone the app looks a little different: the Messages tab lists your channels and conversations together. Tap one, type, and tap Send. To start a message to someone new, touch and hold their name in the list of nodes and choose Message.</p>
+      <p class="hint">No private channel yet? <a href="{{ROOT}}family/" data-goto="family">Family or group channel</a> puts one on each radio.</p>
+    </section>
+
+    <section class="panel" data-only="use">
+      <h2><span><span class="n">03</span>Did it go through?</span><small>read the small line under your message</small></h2>
+      <table class="statuses"><tbody>
+        <tr><th scope="row">Sending...</th><td>Your radio is still trying. Wait; this is slower than a normal text.</td></tr>
+        <tr><th scope="row">Delivered to mesh</th><td>Channel messages. Another radio heard it and passed it on. It does not tell you a person has read it.</td></tr>
+        <tr><th scope="row">Delivered to recipient</th><td>Messages to one person. Their radio has it.</td></tr>
+        <tr><th scope="row">Relayed, not confirmed by recipient</th><td>It was passed along, but their radio has not answered. It may be off or out of range.</td></tr>
+        <tr><th scope="row">Failed to deliver to mesh</th><td>No radio heard it. Move to a window, go outside or get higher up, then send it again.</td></tr>
+      </tbody></table>
+      <ul class="plain">
+        <li><b>Keep messages short.</b> One message holds about 200 letters. The app counts them for you under the box.</li>
+        <li><b>Someone missing from Direct Messages?</b> A person appears there after your two radios have heard each other. Switch both on in the same place once.</li>
+        <li><b>Test before you need it.</b> Send a message from each radio, indoors and from down the street. Range is a few blocks to a few miles without other radios in between.</li>
+        <li><b>This is text, not voice,</b> and not a replacement for 911. Keep the radios charged.</li>
+      </ul>
+    </section>
+
     <!-- ===== See how a radio is set (check page only). Read-only: this panel never writes to the radio. ===== -->
     <section class="panel" data-only="check">
       <h2><span><span class="n">01</span>Read the radio</span><small>looks, doesn't touch</small></h2>
@@ -120,7 +196,7 @@
         <div class="hint">Plug in a radio and press the button. For the next radio, unplug, plug it in, and press again. The radio keeps its name and its other settings.</div>
         <div class="hint" id="fam-count" role="status"></div>
       </div>
-      <div class="callout">Before you rely on it: send a test message on the channel from each radio, indoors and from down the street. Range is a few blocks to a few miles without other nodes in between. This is text messaging, not voice, and not a replacement for 911. Keep the radios charged.</div>
+      <div class="callout">Before you rely on it: send a test message on the channel from each radio (<a href="{{ROOT}}use/" data-goto="use">Use your radio</a> shows how), indoors and from down the street. Range is a few blocks to a few miles without other nodes in between. This is text messaging, not voice, and not a replacement for 911. Keep the radios charged.</div>
     </section>
 
     <section class="panel" data-only="radio">
@@ -337,6 +413,7 @@
         <ol>
           <li>Install the Meshtastic app from the App Store or Google Play.</li>
           <li id="done-pair"></li>
+          <li>Send your first message: <a href="{{ROOT}}use/" data-goto="use">Use your radio</a> shows each tap, with a pretend phone to practice on.</li>
           <li>Open the public channel and send a short hello. If nobody answers, that is normal in a quiet area: try "My local mesh" in step 03, or set up a second radio and message yourself.</li>
         </ol>
       </div>

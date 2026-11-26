@@ -163,8 +163,8 @@ details.mini p { font-size: 13px; color: var(--text-2); margin: 6px 0; }
 details.mini b { color: var(--text); font-weight: 500; }
 label.inline .hint { display: inline; margin: 0; }
 
-/* One template, three pages: /radio/, /family/ and /check/. Each hides the parts that don't name it. */
-body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="family"] [data-only]:not([data-only~="family"]), body[data-page="check"] [data-only]:not([data-only~="check"]), body[data-page="join"] [data-only]:not([data-only~="join"]) { display: none; }
+/* One template, five pages: /radio/, /join/, /family/, /check/ and /use/. Each hides the parts that don't name it. */
+body[data-page="radio"] [data-only]:not([data-only~="radio"]), body[data-page="family"] [data-only]:not([data-only~="family"]), body[data-page="check"] [data-only]:not([data-only~="check"]), body[data-page="join"] [data-only]:not([data-only~="join"]), body[data-page="use"] [data-only]:not([data-only~="use"]) { display: none; }
 /* Join a local mesh: always the community picker, whatever mode the Set up tab was left in. */
 body[data-page="join"] #panel-community { display: block !important; }
 body[data-page="join"] #panel-standard, body[data-page="join"] #panel-manual, body[data-page="join"] #btn-customize { display: none !important; }
@@ -184,8 +184,111 @@ body[data-page="join"] #panel-standard, body[data-page="join"] #panel-manual, bo
 .pagetabs button:hover:not(:disabled) { background: var(--tint); }
 .pagetabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* Keyed on the page, not on script state, so the right tab is marked from the first paint. */
-body[data-page="radio"] .pagetabs [data-tab="radio"], body[data-page="family"] .pagetabs [data-tab="family"], body[data-page="check"] .pagetabs [data-tab="check"], body[data-page="join"] .pagetabs [data-tab="join"] { background: var(--tint); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+body[data-page="radio"] .pagetabs [data-tab="radio"], body[data-page="family"] .pagetabs [data-tab="family"], body[data-page="check"] .pagetabs [data-tab="check"], body[data-page="join"] .pagetabs [data-tab="join"], body[data-page="use"] .pagetabs [data-tab="use"] { background: var(--tint); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
 .pagetabs button:disabled { cursor: not-allowed; opacity: .55; }
+/* The fifth choice is what comes after the other four, so it sits under them at full width. */
+.pagetabs [data-tab="use"] { grid-column: 1 / -1; }
 .tabintro { margin-top: 14px; }
 .tabintro p b { color: var(--text); font-weight: 500; }
 @media (max-width: 640px) { .pagetabs { grid-template-columns: 1fr; } }
+
+/* Nothing is plugged in on this tab: the cable checklist and the USB privacy line would only be in the way. */
+body[data-page="use"] #prereq, body[data-page="use"] .privacy-teaser { display: none; }
+/* ===== Use your radio: steps for the real phone, and a pretend phone to practice on (src/practice.js). ===== */
+.use-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.use-cols .card p { margin: 0; }
+.use-cols .card b { color: var(--text); font-weight: 500; }
+.use-cols ol { margin: 8px 0 2px; padding-left: 22px; color: var(--text-2); font-size: 15px; }
+.use-cols li { margin: 8px 0; }
+table.statuses { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.statuses th, table.statuses td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); }
+table.statuses th { font-weight: 500; color: var(--text); width: 34%; }
+table.statuses td { color: var(--text-2); }
+body[data-page="use"] ul.plain { font-size: 14px; color: var(--text-2); padding-left: 20px; }
+body[data-page="use"] ul.plain li { margin: 8px 0; }
+body[data-page="use"] ul.plain b { color: var(--text); font-weight: 500; }
+
+.practice { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; margin-top: 12px;
+  --ios: #2c55a8; --ibg: #f2f2f7; --irow: #fff; --iline: #d8d8dd; --itext: #111; --igray: #6d6d72; --ibub: #e9e9eb; }
+.practice button { all: unset; box-sizing: border-box; cursor: pointer; }
+.practice button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.practice .pr-side { position: sticky; top: 12px; }
+.practice .lessons { display: grid; gap: 8px; }
+.practice .lessons button { padding: 12px 14px; min-height: 48px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 15px; }
+.practice .lessons button:hover { background: var(--tint); }
+.practice .lessons button[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); box-shadow: inset 3px 0 0 var(--accent); }
+.practice .coach { margin-top: 10px; padding: 12px 14px; min-height: 96px; border: 1px solid var(--accent); border-radius: var(--radius-lg); background: var(--bg); }
+.practice .coach .n { font: 400 12px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .14em; color: var(--accent); }
+.practice .coach p { margin: 4px 0 0; font-size: 18px; line-height: 1.4; color: var(--text); }
+.practice .coach.done { border-color: var(--ok); }
+.practice .coach.done .n { color: var(--ok); }
+.practice .again { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.practice .again button { padding: 10px 14px; min-height: 44px; border: 1px solid var(--accent); border-radius: var(--radius); color: var(--text); font-size: 14px; font-weight: 500; }
+.practice .again button + button { border-color: var(--border); color: var(--text-2); }
+.practice .again button:hover { background: var(--tint); }
+.practice .pr-caption { text-align: center; margin-top: 8px; }
+
+.practice .phone { background: var(--ibg); color: var(--itext); border: 6px solid #05060a; border-radius: 30px; overflow: hidden; font: 400 16px/1.3 -apple-system, system-ui, "Helvetica Neue", sans-serif; }
+.practice .statusbar { display: flex; justify-content: space-between; padding: 8px 22px 2px; font-size: 13px; font-weight: 600; }
+.practice .screen { height: 500px; display: flex; flex-direction: column; }
+.practice .nav { display: flex; align-items: center; min-height: 44px; padding: 0 8px; }
+.practice .back { display: flex; align-items: center; gap: 2px; min-width: 96px; padding: 10px 6px; color: var(--ios); font-size: 16px; border-radius: 8px; }
+.practice .nav .t { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; }
+.practice .nav .sp { min-width: 96px; }
+.practice .big { padding: 0 16px 8px; font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+.practice .list { margin: 0 14px; background: var(--irow); border-radius: 12px; overflow: hidden; }
+.practice .list > button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 12px 14px; border-top: 1px solid var(--iline); background: var(--irow); }
+.practice .list > button:first-child { border-top: 0; }
+.practice .list > button:active { background: #e5e5ea; }
+.practice .grow { flex: 1; min-width: 0; display: block; }
+.practice .h { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.practice .prev { display: block; font-size: 14px; color: var(--igray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.practice .ct { display: flex; align-items: center; justify-content: center; flex: none; width: 42px; height: 42px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 600; }
+.practice .pc-chan { background: #4a7bd0; font-size: 16px; }
+.practice .pc-otter { background: #993556; }
+.practice .pc-bison { background: #0f6e56; }
+.practice .pc-maple { background: #854f0b; }
+.practice .search { margin: 0 14px 10px; padding: 8px 12px; border-radius: 10px; background: #e3e3e8; color: var(--igray); font-size: 15px; }
+.practice .log { flex: 1; overflow-y: auto; padding: 8px 10px; background: var(--irow); }
+.practice .m { display: flex; align-items: flex-end; gap: 8px; margin-top: 10px; }
+.practice .who { margin: 0 0 2px 4px; font-size: 12px; color: var(--igray); }
+.practice .bub { display: inline-block; max-width: 100%; padding: 8px 13px; border-radius: 18px; background: var(--ibub); overflow-wrap: anywhere; }
+.practice .mine { margin: 10px 0 0 54px; text-align: right; }
+.practice .mine .bub { background: var(--ios); color: #fff; text-align: left; }
+.practice .st { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin: 3px 4px 0; font-size: 12px; color: #a35c00; }
+.practice .st.ok { color: var(--igray); }
+.practice .compose { padding: 6px 10px 8px; background: var(--irow); border-top: 1px solid var(--iline); }
+.practice .compose .r { display: flex; align-items: center; gap: 8px; }
+.practice .compose input { flex: 1; min-width: 0; width: auto; padding: 8px 14px; border: 1px solid #c7c7cc; border-radius: 18px; background: #fff; color: #111; font: inherit; font-size: 16px; box-shadow: none; }
+.practice .compose input::placeholder { color: #a0a0a6; }
+.practice .send { display: flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--ios); color: #fff; }
+.practice .tb { display: flex; align-items: center; gap: 14px; margin-top: 8px; padding: 6px 14px; border-radius: 18px; background: #f2f2f4; color: #3c3c50; font-size: 15px; }
+.practice .tb .by { margin-left: auto; font-size: 12px; text-align: right; }
+.practice .tb .bar { display: block; width: 60px; height: 4px; margin-top: 2px; border-radius: 2px; background: #d9d9de; }
+.practice .tb .bar span { display: block; width: 0; height: 4px; border-radius: 2px; background: var(--ios); }
+.practice .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 0 12px; border-top: 1px solid var(--iline); background: #f9f9f9; color: #8e8e93; font-size: 11px; text-align: center; }
+.practice .tabbar svg { display: block; margin: 0 auto 2px; }
+.practice .tabbar .on { color: var(--ios); }
+.practice svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.practice svg.sm { width: 16px; height: 16px; }
+.practice svg.ios { color: var(--ios); }
+.practice .chev { color: #c4c4c7; }
+.practice .lock-g { color: #2fa84f; }
+.practice .lock-y { color: #e0a800; }
+.practice .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* The next thing to tap. Orange, because nothing else on the pretend phone is. */
+.practice .target { outline: 3px solid #ff9f0a; outline-offset: -3px; animation: pr-pulse 1.2s ease-in-out infinite; }
+.practice .send.target, .practice .compose input.target { outline-offset: 2px; }
+@keyframes pr-pulse { 50% { outline-color: rgba(255, 159, 10, .25); } }
+@media (prefers-reduced-motion: reduce) { .practice .target { animation: none; } }
+@media (max-width: 760px) {
+  .use-cols { grid-template-columns: 1fr; }
+  .practice { grid-template-columns: 1fr; gap: 12px; }
+  /* On a phone the step stays in view above the pretend phone while the page scrolls. */
+  /* display: contents makes the step a child of the grid, so it can stick for the whole height of the pretend phone. */
+  .practice .pr-side { display: contents; }
+  .practice .lessons { grid-template-columns: 1fr 1fr; }
+  .practice .coach { position: sticky; top: 8px; z-index: 2; margin-top: 0; min-height: 84px; box-shadow: 0 6px 18px -8px #000; }
+  .practice .pr-phone { max-width: 360px; width: 100%; margin: 0 auto; }
+  table.statuses th { width: 42%; }
+}
