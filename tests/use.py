@@ -96,7 +96,16 @@ try:
 
     # ---- a phone: this is the tab people open on one. Nothing runs off the side, and the step stays in view ----
     pg = page(width=360, height=740)
-    assert pg.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "fits a phone"
+    fits = lambda: pg.evaluate("document.documentElement.scrollWidth <= window.innerWidth && document.querySelector('#practice .phone').getBoundingClientRect().right <= window.innerWidth - 20")
+    assert fits(), "fits a phone"
+    # Every screen of the pretend phone, not only the first: a long one-line message preview once pushed the whole
+    # drawing off the right edge on the Channels screen (seen on David's iPhone 17 Pro).
+    for tap, name in [("[data-go=channels]", "channels"), ("[data-go='chat:family']", "chat"), (".back", "channels again"), (".back", "home"), ("[data-go=contacts]", "contacts"), ("[data-go='chat:maple']", "direct chat")]:
+      pg.click("#practice " + tap); pg.wait_for_timeout(500)
+      assert fits(), name + " screen runs off the side"
+    pg.fill("#pr-box", "a long message " * 9); pg.click("#pr-send"); pg.wait_for_timeout(300)
+    assert fits(), "a long sent message runs off the side"
+    pg.click("#practice .back"); pg.click("#practice .back"); pg.evaluate("window.scrollTo(0, 0)")
     # The step and the pretend phone fit on one screen together, and the step never covers the phone's top bar
     # (a sticky step did, on a real iPhone: it hid the back button the step was telling the reader to tap).
     pg.evaluate("window.scrollBy(0, 5000)"); pg.locator("#pr-screen").scroll_into_view_if_needed()
