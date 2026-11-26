@@ -39,3 +39,18 @@ David, after trying the live tab: "I think we need prerequisite for that. The gu
 - The lesson's contact-list step and its last line now point at that card.
 - From the app's source: the contact list leaves out nodes it holds no public key for (UserList), the node screen says "This node has not shared a public key, so direct messages to it cannot be sent. Exchange User Info asks for one." (NodeDetail), and the node list's hold menu has Message (NodeList).
 - My call: "give it a few minutes" for how long two radios take to hear each other. Not measured.
+
+## 0.16.1, second pass: layout review against other guides
+
+David asked whether the layout works for explaining channel and direct messages, and to see how other guides explain it and how contacts are added.
+
+What other guides do: the official app docs state the two modes first (channel broadcast, direct message) and say a direct message needs the other radio's public key, which "usually arrives on its own" inside node info; both apps have Share Contact (a QR code) and an Add Contact / import step, and Exchange User Info (iPhone) or Request User Info (Android) for a node with no key. Meshtastic's "finding your local mesh" post recommends a direct message as the test, because only the recipient's acknowledgment proves arrival. The MeshCore app guide orders it contact first, message second. The beginner guides read (Hexaspot, Meshtastic for Non-coders) stop at the public channel and never explain direct messages.
+
+Changes:
+- Organised by task, not by medium: "Two kinds of message" (the model, before any steps), 01 practice, 02 message your group, 03 message one person, 04 did it go through.
+- In 03 the prerequisite comes before the steps that depend on it, and has two routes side by side: scan their code (Share Contact, Add Contact), or let the radios find each other.
+- Real-phone steps are set at body size with accent numerals (`ol.taps`; `ol.steps` is already the progress pills).
+- Android moved into one closed "Using an Android phone?" block.
+- On a phone, on this tab only, the five choices become a compact two-column grid without subtitles, so the guide starts about 470px sooner.
+
+Not verified on a real phone: the iPhone path for showing your own code (Nodes, your radio, Actions, Share Contact) and that the camera opens the link. Both come from the docs. David has two T1000-Es to try it with.
